@@ -21,6 +21,8 @@ public class StarsRandom {
 		seedB = prime2;
 		rounds = initRounds;
 		
+//		System.out.println(this);
+		
 		// Now initialize a few rounds
 		for(int i = 0; i < rounds; i++)
 			nextRandom();

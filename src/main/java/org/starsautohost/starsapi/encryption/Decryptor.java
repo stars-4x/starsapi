@@ -136,11 +136,11 @@ public class Decryptor
 					| (Util.ubyteToInt(encryptedData[i+1]) << 8)
 					| Util.ubyteToInt(encryptedData[i]);
 			
-//			System.out.println("chunk: " + chunk);
+//			System.out.println("chunk  : " + Integer.toHexString((int)chunk));
 			
 			// XOR with a random number
 			long decryptedChunk = chunk ^ random.nextRandom();
-//			System.out.println("dechunk: " + decryptedChunk);
+//			System.out.println("dechunk: " + Integer.toHexString((int)decryptedChunk));
 			
 			// Write out the decrypted data, swapped back
 			decryptedData[i] =  (byte) (decryptedChunk & 0xFF);
