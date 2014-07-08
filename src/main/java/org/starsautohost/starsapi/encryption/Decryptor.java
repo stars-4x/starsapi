@@ -216,11 +216,10 @@ public class Decryptor
 			
 			// There are 4 bytes per planet
 			size = planetsBlock.planetsSize * 4;
+			planetsBlock.planetsDataSize = size;
 			
-			block.otherData = Arrays.copyOfRange(fileBytes, offset, offset + size);
+			planetsBlock.planetsData = Arrays.copyOfRange(fileBytes, offset, offset + size);
 		}
-		
-		block.otherDataSize = size;
 		
 		return size;
 	}

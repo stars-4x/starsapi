@@ -6,6 +6,16 @@ public class PlanetsBlock extends Block {
 	
 	public int planetsSize;
 
+	
+	public int planetsDataSize = 0;
+	
+	/**
+	 * This holds possible other data after the block, like with the PLANETS
+	 * block (probably the only case?)
+	 */
+	public byte[] planetsData;
+	
+
 	public PlanetsBlock() {
 		typeId = BlockType.PLANETS;
 	}
@@ -24,6 +34,18 @@ public class PlanetsBlock extends Block {
 	public byte[] encode() throws Exception {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public String toString() {
+		String s = super.toString();
+		
+		if(planetsDataSize > 0) {
+			s += "-- Planets Data --\n";
+			s += Util.bytesToString(planetsData, 0, planetsDataSize) + "\n";
+		}
+		
+		return s;
 	}
 
 }

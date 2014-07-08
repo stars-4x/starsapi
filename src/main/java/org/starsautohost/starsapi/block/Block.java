@@ -31,15 +31,6 @@ public abstract class Block {
 	 * This holds the decrypted block data
 	 */
 	protected byte[] decryptedData;
-
-	
-	public int otherDataSize = 0;
-	
-	/**
-	 * This holds possible other data after the block, like with the PLANETS
-	 * block (probably the only case?)
-	 */
-	public byte[] otherData;
 	
 	
 	public Block() {}
@@ -118,11 +109,6 @@ public abstract class Block {
 				s += Util.bytesToString(decryptedData, 0, size) + "\n";
 			}
 		}
-		
-//		if(otherDataSize > 0) {
-//			s += "-- Other Data --\n";
-//			s += Util.bytesToString(otherData, 0, otherDataSize) + "\n";
-//		}
 
 		return s;
 	}
