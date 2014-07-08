@@ -54,14 +54,14 @@ public class Util {
 	 * For debugging!
 	 * 
 	 * @param bytes
-	 * @param startIndex
+	 * @param offset
 	 * @param size
 	 * @return
 	 */
-	public static String bytesToString(byte[] bytes, int startIndex, int size) {
+	public static String bytesToString(byte[] bytes, int offset, int size) {
 		StringBuilder sb = new StringBuilder();
 		
-		for(int i = startIndex; i < startIndex + size; i++) {
+		for(int i = offset; i < offset + size; i++) {
 			sb.append(Util.read8(bytes[i]));
 			sb.append(" ");
 		}

@@ -164,14 +164,14 @@ public class Decryptor
      *   YYYYYY is a block type.
      *   ZZXXXXXXXX is a block size. 
 	 * 
-	 * @param currentIndex
+	 * @param offset
 	 * @param fileBytes
 	 * @return
 	 * @throws Exception 
 	 */
-	private Block parseBlock(int currentIndex, byte[] fileBytes) throws Exception {
+	private Block parseBlock(byte[] fileBytes, int offset) throws Exception {
 		// We have to do a bitwise AND with 0xFF to convert from unsigned byte to int
-		int header = Util.read16(fileBytes, currentIndex);
+		int header = Util.read16(fileBytes, offset);
 
 		int typeId = header >> 10;
 		int size = header & 0x3FF;
@@ -185,7 +185,7 @@ public class Decryptor
 		byte[] data = new byte[paddedSize];
 		
 		// Now copy the block data from the file byte array
-		System.arraycopy(fileBytes, currentIndex + 2, data, 0, size);
+		System.arraycopy(fileBytes, offset + 2, data, 0, size);
 		
 		// This will create the appropriate Block-type object according to the typeId
 		Class<? extends Block> blockClass = BlockType.getBlockClass(typeId);
@@ -203,12 +203,12 @@ public class Decryptor
 	 * 
 	 * Requires decryption to have been done on the block data
 	 * 
-	 * @param startIndex
+	 * @param offset
 	 * @param fileBytes
 	 * @param block
 	 * @return
 	 */
-	private int postProcessBlock(int startIndex, byte[] fileBytes, Block block) {
+	private int postProcessBlock(byte[] fileBytes, int offset, Block block) {
 		int size = 0;
 		
 		if(block.typeId == BlockType.PLANETS) {
@@ -217,7 +217,7 @@ public class Decryptor
 			// There are 4 bytes per planet
 			size = planetsBlock.planetsSize * 4;
 			
-			block.otherData = Arrays.copyOfRange(fileBytes, startIndex, startIndex + size);
+			block.otherData = Arrays.copyOfRange(fileBytes, offset, offset + size);
 		}
 		
 		block.otherDataSize = size;
@@ -250,11 +250,11 @@ public class Decryptor
 		ArrayList<Block> blockList = new ArrayList<Block>();
 		
 		// Index where we start to read the next block
-		int currentIndex = 0;
+		int offset = 0;
 		
-		while(currentIndex < file.length()) {
+		while(offset < file.length()) {
 			// Initial parse of our block
-			Block block = parseBlock(currentIndex, fileBytes);
+			Block block = parseBlock(fileBytes, offset);
 			
 			// Do the decryption!
 			decryptBlock(block);
@@ -263,13 +263,13 @@ public class Decryptor
 			block.decode();
 
 			// Advance our read index
-			currentIndex = currentIndex + block.size + BLOCK_HEADER_SIZE;
+			offset = offset + block.size + BLOCK_HEADER_SIZE;
 			
 			// Check to see if we need to grab even more data before the next block
-			int dataSize = postProcessBlock(currentIndex, fileBytes, block);
+			int dataSize = postProcessBlock(fileBytes, offset, block);
 			
 			// Advance the index again
-			currentIndex = currentIndex + dataSize;
+			offset = offset + dataSize;
 
 			// DEBUG
 			System.out.println(block);
