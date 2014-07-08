@@ -98,7 +98,7 @@ public class FileHeaderBlock extends Block {
 	@Override
 	public String toString() {
 		// This is about the most inefficient way to do this
-		String s = "";
+		String s = super.toString();
 		
 		s += "FileHeaderBlock:\n";
 		s += "Magic Number Data: " + Util.bytesToString(magicNumberData, 0, 4) + "\n";
