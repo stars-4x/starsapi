@@ -109,21 +109,13 @@ public abstract class Block {
 	public String toString() {
 		String s = "=> Block type: " + typeId + "; size: " + size + "\n";
 		
-		// Re-encode first two blocks from type and size
-		// Bottom 8 bits of size become byte 1
-		int byte1 = size;
-
-		// Block type becomes top 6 bits of byte 2, top 2 (of 10) bits of size 
-		// become the low 2 bits
-		int byte2 = (size >> 8) | (typeId << 2);
-		
 		if(size > 0) {
-			s += "-- Original Block --\n";
-			s += byte1 + " " + byte2 + " " + Util.bytesToString(data, 0, size) + "\n";
+			s += "-- Original Block Data --\n";
+			s += Util.bytesToString(data, 0, size) + "\n";
 			
 			if(encrypted) {
-				s += "-- Decrypted Block --\n";
-				s += byte1 + " " + byte2 + " " + Util.bytesToString(decryptedData, 0, size) + "\n";
+				s += "-- Decrypted Block Data --\n";
+				s += Util.bytesToString(decryptedData, 0, size) + "\n";
 			}
 		}
 		
