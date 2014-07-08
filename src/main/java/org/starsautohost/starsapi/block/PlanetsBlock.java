@@ -17,8 +17,7 @@ public class PlanetsBlock extends Block {
 
 		// Planet size is determined by swapping bytes 10 and 11
 		// and concatenating their bits
-		planetsSize = (Util.ubyteToInt(decryptedData[11]) << 8) 
-				| Util.ubyteToInt(decryptedData[10]);
+		planetsSize = Util.read16(decryptedData, 10);
 	}
 
 	@Override

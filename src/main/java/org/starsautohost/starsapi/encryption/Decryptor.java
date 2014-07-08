@@ -89,7 +89,7 @@ public class Decryptor
 		int part3 = (fileHeaderBlock.turn & 0x3) + 1;
 		
 		// Lower 2 bits of gameId, plus 1
-		int part4 = (fileHeaderBlock.gameId & 0x3) + 1;
+		int part4 = ((int) fileHeaderBlock.gameId & 0x3) + 1;
 		
 		// Now put them all together, this could conceivably generate up to 65 
 		// rounds  (4 * 4 * 4) + 1
@@ -131,10 +131,10 @@ public class Decryptor
 		// Now decrypt, processing 4 bytes at a time
 		for(int i = 0; i < block.paddedSize; i+=4) {
 			// Swap bytes:  4 3 2 1
-			long chunk = (Util.ubyteToInt(encryptedData[i+3]) << 24)
-					| (Util.ubyteToInt(encryptedData[i+2]) << 16)
-					| (Util.ubyteToInt(encryptedData[i+1]) << 8)
-					| Util.ubyteToInt(encryptedData[i]);
+			long chunk = (Util.read8(encryptedData[i+3]) << 24)
+					| (Util.read8(encryptedData[i+2]) << 16)
+					| (Util.read8(encryptedData[i+1]) << 8)
+					| Util.read8(encryptedData[i]);
 			
 //			System.out.println("chunk  : " + Integer.toHexString((int)chunk));
 			
@@ -171,13 +171,10 @@ public class Decryptor
 	 */
 	private Block parseBlock(int currentIndex, byte[] fileBytes) throws Exception {
 		// We have to do a bitwise AND with 0xFF to convert from unsigned byte to int
-		int byte1 = Util.ubyteToInt(fileBytes[currentIndex]);
-		int byte2 = Util.ubyteToInt(fileBytes[currentIndex+1]);
+		int header = Util.read16(fileBytes, currentIndex);
 
-		int lowBits = byte2 & 3;
-		
-		int size = (lowBits << 8) | byte1;
-		int typeId = byte2 >> 2;
+		int typeId = header >> 10;
+		int size = header & 0x3FF;
 		
 		if(size > BLOCK_MAX_SIZE)
 			throw new Exception("Bad block size: " + size + "; typeId: " + typeId);
@@ -275,7 +272,7 @@ public class Decryptor
 			currentIndex = currentIndex + dataSize;
 
 			// DEBUG
-//			System.out.println(block);
+			System.out.println(block);
 			
 			// Store block for later parsing
 			blockList.add(block);

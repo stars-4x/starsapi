@@ -15,7 +15,7 @@ public class FileHeaderBlock extends Block {
 	public byte[] magicNumberData;
 	public String magicNumberString;
 	
-	public int gameId;
+	public long gameId;
 	public int versionMajor;
 	public int versionMinor;
 	public int versionIncrement;
@@ -54,33 +54,30 @@ public class FileHeaderBlock extends Block {
 		magicNumberString = new String(magicNumberData);
 		
 		// Game id is 4 bytes (swapped)
-		gameId = (Util.ubyteToInt(data[7]) << 24)
-				| (Util.ubyteToInt(data[6]) << 16)
-				| (Util.ubyteToInt(data[5]) << 8)
-				| Util.ubyteToInt(data[4]);
+		gameId = Util.read32(data, 4);
 		
 		// Version data block is two bytes (swapped)
-		int versionData = (Util.ubyteToInt(data[9]) << 8) | Util.ubyteToInt(data[8]);
+		int versionData = Util.read16(data, 8);
 		versionMajor = versionData >> 12;         // First 4 bits
 		versionMinor = (versionData >> 5) & 0x7F; // Middle 7 bits
 		versionIncrement = versionData & 0x1F;    // Last 5 bits
 		
 		// Turn is next two bytes (swapped)
-		turn = (Util.ubyteToInt(data[11]) << 8) | Util.ubyteToInt(data[10]);
+		turn = Util.read16(data, 10);
 		year = 2400 + turn;
 		
 		// Player data next, 2 bytes swapped
-		int playerData = (Util.ubyteToInt(data[13]) << 8) | Util.ubyteToInt(data[12]);
+		int playerData = Util.read16(data, 12);
 		encryptionSalt = playerData >> 5;  // First 11 bits
 		playerNumber = playerData & 0x1F;  // Last 5 bits
 		
 		// File type is next byte
-		fileType = Util.ubyteToInt(data[14]);
+		fileType = Util.read8(data[14]);
 		
 		// Flags use the last byte of the file header   The bits are used like so:
 		//   UUU43210
 		// Where 'U' is unused. and 43210 correspond to the bit shifts below
-		int flags = Util.ubyteToInt(data[15]);
+		int flags = Util.read8(data[15]);
 		turnSubmitted = (flags & 1) > 0;
 		hostUsing =     (flags & (1 << 1)) > 0;
 		multipleTurns = (flags & (1 << 2)) > 0;
@@ -103,7 +100,7 @@ public class FileHeaderBlock extends Block {
 		s += "FileHeaderBlock:\n";
 		s += "Magic Number Data: " + Util.bytesToString(magicNumberData, 0, 4) + "\n";
 		s += "Magic Number String: " + magicNumberString + "\n";
-		s += "Game ID: " + Integer.toHexString(gameId) + "\n";
+		s += "Game ID: " + Integer.toHexString((int)gameId) + "\n";
 		s += "Version: " + versionMajor + "." + versionMinor + "." + versionIncrement + "\n"; 
 		s += "Turn: " + turn + "; Year: " + year + "\n";
 		s += "Player Number: " + playerNumber + "; Displayed as: " + (playerNumber + 1) + "\n";

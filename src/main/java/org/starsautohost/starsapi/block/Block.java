@@ -127,10 +127,10 @@ public abstract class Block {
 			}
 		}
 		
-		if(otherDataSize > 0) {
-			s += "-- Other Data --\n";
-			s += Util.bytesToString(otherData, 0, otherDataSize) + "\n";
-		}
+//		if(otherDataSize > 0) {
+//			s += "-- Other Data --\n";
+//			s += Util.bytesToString(otherData, 0, otherDataSize) + "\n";
+//		}
 
 		return s;
 	}
