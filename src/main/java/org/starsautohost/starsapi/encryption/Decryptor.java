@@ -1,10 +1,13 @@
 package org.starsautohost.starsapi.encryption;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -155,7 +158,56 @@ public class Decryptor
 		
 		block.setDecryptedData(decryptedData);
 	}
-		
+
+	/**
+     * Encrypt the given block.
+     * 
+     * The first call to this will be the File Header Block which will
+     * be used to initialize the encryption system
+     * 
+     * @param block
+     * @throws Exception
+     */
+    private void encryptBlock(Block block) throws Exception {
+        // If it's a header block, it's unencrypted and will be used to 
+        // initialize the decryption system.  We have to decode it first
+        if(block.typeId == BlockType.FILE_HEADER) {
+            block.encrypted = false;
+            block.decode();
+            
+            initDecryption((FileHeaderBlock) block);
+            
+            return;
+        }
+
+        byte[] decryptedData = block.getDecryptedData();
+        
+        byte[] encryptedData = new byte[block.paddedSize];
+        
+        // Now encrypt, processing 4 bytes at a time
+        for(int i = 0; i < block.paddedSize; i+=4) {
+            // Swap bytes:  4 3 2 1
+            long chunk = (Util.read8(decryptedData[i+3]) << 24)
+                    | (Util.read8(decryptedData[i+2]) << 16)
+                    | (Util.read8(decryptedData[i+1]) << 8)
+                    | Util.read8(decryptedData[i]);
+            
+//          System.out.println("chunk  : " + Integer.toHexString((int)chunk));
+            
+            // XOR with a random number
+            long encryptedChunk = chunk ^ random.nextRandom();
+//          System.out.println("dechunk: " + Integer.toHexString((int)decryptedChunk));
+            
+            // Write out the decrypted data, swapped back
+            encryptedData[i] =  (byte) (encryptedChunk & 0xFF);
+            encryptedData[i+1] =  (byte) ((encryptedChunk >> 8)  & 0xFF);
+            encryptedData[i+2] =  (byte) ((encryptedChunk >> 16)  & 0xFF);
+            encryptedData[i+3] =  (byte) ((encryptedChunk >> 24)  & 0xFF);
+        }
+        
+        block.setData(encryptedData, block.size, block.paddedSize);
+    }
+
 	
 	/**
 	 * This will detect and return a block with its type, size, and block of the 
@@ -287,6 +339,42 @@ public class Decryptor
 
 		return blockList;
 	}
+
+    /**
+     * Write a block to an output stream.  Assume already encrypted if needed.
+     */
+    private void writeBlock(OutputStream out, Block block) throws Exception {
+        int header = (block.typeId << 10) | block.size;
+        out.write(header & 0xFF);
+        out.write((header >> 8) & 0xFF);
+        out.write(block.getData(), 0, block.size);
+        if(block.typeId == BlockType.PLANETS) {
+            PlanetsBlock planetsBlock = (PlanetsBlock) block;
+            out.write(planetsBlock.planetsData);
+        }       
+    }
+
+    /**
+     * Write blocks to an output stream.  Encrypt as needed.
+     */
+    public void writeBlocks(OutputStream out, List<Block> blocks) throws Exception {
+        for (Block block : blocks) {
+            encryptBlock(block);
+            writeBlock(out, block);
+        }
+    }
+
+    /**
+     * Write blocks to an file.  Encrypt as needed.
+     */
+    public void writeBlocks(String filename, List<Block> blocks) throws Exception {
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(filename));
+        try {
+            writeBlocks(out, blocks);
+        } finally {
+            out.close();
+        }
+    }
 }
 
 
