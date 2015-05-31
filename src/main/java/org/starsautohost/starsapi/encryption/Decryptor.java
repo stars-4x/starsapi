@@ -1,9 +1,13 @@
 package org.starsautohost.starsapi.encryption;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.starsautohost.starsapi.Util;
 import org.starsautohost.starsapi.block.Block;
@@ -38,7 +42,7 @@ public class Decryptor
 	 * uses 279 and it turns out that an analysis of the stars EXE with a hex editor
 	 * also shows a primes table with 279.  Fun!
 	 */
-    private int[] primes = new int[] { 
+    private static final int[] primes = new int[] { 
     		3, 5, 7, 11, 13, 17, 19, 23, 
     		29, 31, 37, 41, 43, 47, 53, 59,
     		61, 67, 71, 73, 79, 83, 89, 97,
@@ -196,7 +200,6 @@ public class Decryptor
 		return block;
 	}
 
-
 	/**
 	 * Some blocks have more data at the end of the block (like PLANETS).  
 	 * Detect this, parse the data, and return the size of the data.
@@ -233,25 +236,30 @@ public class Decryptor
 	 * @return
 	 * @throws Exception
 	 */
-	public ArrayList<Block> readFile(String filename) throws Exception {
+	public List<Block> readFile(String filename) throws Exception {
 		
 		// Read in the full file to a byte array...  we have the RAM
 		File file = new File(filename);
-		FileInputStream fileInputStream = new FileInputStream(file);
-		
-		byte[] fileBytes = new byte[(int) file.length()];
-		
-		fileInputStream.read(fileBytes);
-		fileInputStream.close();
-		
+		InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
+		ByteArrayOutputStream bout = new ByteArrayOutputStream((int) file.length());
+		try {
+		    byte[] buf = new byte[8192];
+		    int r;
+		    while ((r = fileInputStream.read(buf)) > 0) {
+		        bout.write(buf, 0, r);
+		    }
+		} finally {
+		    fileInputStream.close();
+		}
+		byte[] fileBytes = bout.toByteArray();
 		
 		// Round 1: Block-parsing
-		ArrayList<Block> blockList = new ArrayList<Block>();
+		List<Block> blockList = new ArrayList<Block>();
 		
 		// Index where we start to read the next block
 		int offset = 0;
 		
-		while(offset < file.length()) {
+		while(offset < fileBytes.length) {
 			// Initial parse of our block
 			Block block = parseBlock(fileBytes, offset);
 			
@@ -271,12 +279,12 @@ public class Decryptor
 			offset = offset + dataSize;
 
 			// DEBUG
-			System.out.println(block);
+			//System.out.println(block);
 			
 			// Store block for later parsing
 			blockList.add(block);
 		}
-		
+
 		return blockList;
 	}
 }
