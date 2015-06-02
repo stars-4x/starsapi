@@ -13,9 +13,9 @@ public class ProductionQueueChangeBlock extends Block {
 	}
 
 	@Override
-	public byte[] encode() {
+	public void encode() {
 		// TODO Auto-generated method stub
-		return null;
+		
 	}
 
 }

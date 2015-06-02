@@ -43,9 +43,10 @@ public abstract class Block {
 	
 	
 	/**
-	 * Encode the data in this block, serializing it into Stars! file data format
+	 * Encode the data in this block, serializing it into Stars! file data format.
+	 * The result is stored as the decrypted data of the block.
 	 */
-	public abstract byte[] encode() throws Exception;
+	public abstract void encode() throws Exception;
 
 
 	/**

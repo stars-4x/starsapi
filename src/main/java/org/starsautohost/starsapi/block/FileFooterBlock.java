@@ -13,9 +13,9 @@ public class FileFooterBlock extends Block {
 	}
 
 	@Override
-	public byte[] encode() throws Exception {
+	public void encode() throws Exception {
 		// TODO Auto-generated method stub
-		return null;
+		
 	}
 
 }

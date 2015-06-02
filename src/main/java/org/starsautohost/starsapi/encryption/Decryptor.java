@@ -359,6 +359,7 @@ public class Decryptor
      */
     public void writeBlocks(OutputStream out, List<Block> blocks) throws Exception {
         for (Block block : blocks) {
+            block.encode();
             encryptBlock(block);
             writeBlock(out, block);
         }

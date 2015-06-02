@@ -87,8 +87,8 @@ public class FileHeaderBlock extends Block {
 
 
 	@Override
-	public byte[] encode() throws Exception {
-		return null;
+	public void encode() throws Exception {
+		
 	}
 	
 
