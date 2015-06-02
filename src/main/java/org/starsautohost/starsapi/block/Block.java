@@ -77,7 +77,8 @@ public abstract class Block {
 	 * @throws Exception 
 	 */
 	public byte[] getDecryptedData() throws Exception {
-		if(!hasDecryptedData)
+	    if (!encrypted) return getData();
+		if (!hasDecryptedData)
 			throw new Exception("Decrypted byte data has not been set!");
 		
 		return decryptedData;
