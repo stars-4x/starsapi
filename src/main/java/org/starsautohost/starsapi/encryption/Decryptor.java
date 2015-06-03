@@ -34,7 +34,6 @@ public class Decryptor
 {
 	private static int BLOCK_HEADER_SIZE = 2;  // bytes
 	private static int BLOCK_MAX_SIZE = 1024;  // bytes
-	private static int BLOCK_PADDING = 4;      // bytes
 	
 	/**
 	 * The first 64 prime numbers, after '2' (so all are odd). These are used 
@@ -133,10 +132,10 @@ public class Decryptor
 
 		byte[] encryptedData = block.getData();
 		
-		byte[] decryptedData = new byte[block.paddedSize];
+		byte[] decryptedData = new byte[encryptedData.length];
 		
 		// Now decrypt, processing 4 bytes at a time
-		for(int i = 0; i < block.paddedSize; i+=4) {
+		for(int i = 0; i < encryptedData.length; i+=4) {
 			// Swap bytes:  4 3 2 1
 			long chunk = (Util.read8(encryptedData[i+3]) << 24)
 					| (Util.read8(encryptedData[i+2]) << 16)
@@ -156,7 +155,7 @@ public class Decryptor
 			decryptedData[i+3] =  (byte) ((decryptedChunk >> 24)  & 0xFF);
 		}
 		
-		block.setDecryptedData(decryptedData);
+		block.setDecryptedData(decryptedData, block.size);
 	}
 
 	/**
@@ -179,13 +178,15 @@ public class Decryptor
             
             return;
         }
+        
+        block.encrypted = true;
 
         byte[] decryptedData = block.getDecryptedData();
         
-        byte[] encryptedData = new byte[block.paddedSize];
+        byte[] encryptedData = new byte[decryptedData.length];
         
         // Now encrypt, processing 4 bytes at a time
-        for(int i = 0; i < block.paddedSize; i+=4) {
+        for(int i = 0; i < decryptedData.length; i+=4) {
             // Swap bytes:  4 3 2 1
             long chunk = (Util.read8(decryptedData[i+3]) << 24)
                     | (Util.read8(decryptedData[i+2]) << 16)
@@ -205,7 +206,7 @@ public class Decryptor
             encryptedData[i+3] =  (byte) ((encryptedChunk >> 24)  & 0xFF);
         }
         
-        block.setData(encryptedData, block.size, block.paddedSize);
+        block.setData(encryptedData, block.size);
     }
 
 	
@@ -237,8 +238,7 @@ public class Decryptor
 		
 		// We must have a padded byte array because decryption works on 4
 		// bytes at a time
-		int paddedSize = (size + (BLOCK_PADDING-1)) & ~(BLOCK_PADDING-1);
-		byte[] data = new byte[paddedSize];
+		byte[] data = new byte[Block.pad(size)];
 		
 		// Now copy the block data from the file byte array
 		System.arraycopy(fileBytes, offset + 2, data, 0, size);
@@ -247,7 +247,7 @@ public class Decryptor
 		Class<? extends Block> blockClass = BlockType.getBlockClass(typeId);
 		
 		Block block = blockClass.newInstance();
-		block.setData(data, size, paddedSize);
+		block.setData(data, size);
 		
 		return block;
 	}

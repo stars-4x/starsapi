@@ -7,16 +7,14 @@ import org.starsautohost.starsapi.Util;
  * Basic holder for a file block
  */
 public abstract class Block {
+    private static int BLOCK_PADDING = 4;      // bytes
+
 	public int typeId = BlockType.UNKNOWN_BAD;
 	public int size = 0;
-	
-	// Padded block size, to a multiple of 4
-	public int paddedSize = 0;
-	
 	public boolean encrypted = true;
 	
 	/**
-	 * This holds the original block data 
+	 * This holds the original block data, padded to a multiple of 4
 	 */
 	protected byte[] data;
 	
@@ -28,7 +26,7 @@ public abstract class Block {
 	protected boolean hasDecryptedData = false;
 	
 	/**
-	 * This holds the decrypted block data
+	 * This holds the decrypted block data, padded to a multiple of 4
 	 */
 	protected byte[] decryptedData;
 	
@@ -63,14 +61,20 @@ public abstract class Block {
 	/**
 	 * @param data the raw byte data from a Stars! file
 	 * @param size the size of the raw byte data or the decrypted data
-	 * @param paddedSize the true size of the data array, padded to a 4-byte multiple
 	 */
-	public void setData(byte[] data, int size, int paddedSize) {
-		this.data = data;
+	public void setData(byte[] data, int size) {
 		this.size = size;
-		this.paddedSize = paddedSize;
-		
-		hasData = true;
+		if (data.length >= pad(size)) {
+		    this.data = data;
+		} else {
+		    this.data = new byte[pad(size)];
+		    System.arraycopy(data, 0, this.data, 0, size);
+		}
+		this.hasData = true;
+	}
+	
+	public static int pad(int size) {
+	    return (size + (BLOCK_PADDING-1)) & ~(BLOCK_PADDING-1);
 	}
 
 	/**
@@ -88,9 +92,14 @@ public abstract class Block {
 	/**
 	 * @param decryptedData the data decrypted from the raw byte data 
 	 */
-	public void setDecryptedData(byte[] decryptedData) {
-		this.decryptedData = decryptedData;
-		
+	public void setDecryptedData(byte[] decryptedData, int size) {
+	    this.size = size;
+        if (decryptedData.length >= pad(size)) {
+            this.decryptedData = decryptedData;
+        } else {
+            this.decryptedData = new byte[pad(size)];
+            System.arraycopy(decryptedData, 0, this.decryptedData, 0, size);
+        }
 		hasDecryptedData = true;
 	}
 	
