@@ -319,7 +319,12 @@ public class Decryptor
 			decryptBlock(block);
 			
 			// Decode!
-			block.decode();
+			try {
+			    block.decode();
+			} catch (RuntimeException e) {
+			    System.out.println("Error (" + e + ") decoding: " + block);
+			    throw e;
+			}
 
 			// Advance our read index
 			offset = offset + block.size + BLOCK_HEADER_SIZE;

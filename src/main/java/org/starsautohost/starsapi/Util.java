@@ -34,6 +34,18 @@ public class Util {
 		return read8(data[offset+1]) << 8 | read8(data[offset]);
 	}
 	
+	/**
+     * Write a 16 bit little endian integer into a byte array
+     * 
+     * @param data
+     * @param startIndex
+     * @return
+     */
+    public static void write16(byte[] data, int offset, int value) {
+        data[offset + 1] = (byte)((value >> 8) & 0xFF);
+        data[offset] = (byte)(value & 0xFF);
+    }
+
 	
 	/**
 	 * Read a 32 bit little endian integer from a byte array

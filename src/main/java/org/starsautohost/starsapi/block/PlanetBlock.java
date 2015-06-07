@@ -1,21 +1,9 @@
 package org.starsautohost.starsapi.block;
 
-public class PlanetBlock extends Block {
+public class PlanetBlock extends PartialPlanetBlock {
 
 	public PlanetBlock() {
 		typeId = BlockType.PLANET;
-	}
-
-	@Override
-	public void decode() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void encode() {
-		// TODO Auto-generated method stub
-		
 	}
 
 }
