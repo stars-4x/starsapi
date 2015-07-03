@@ -117,9 +117,13 @@ public class HFileMerger {
         int filePlayerNumber = headerBlock.playerNumber;
         copy(filename, backupFilename(filename));
         ((CountersBlock)blocks.get(1)).planetCount = numPlanets;
+        blocks.get(1).encode();
         List<Block> newBlocks = new ArrayList<Block>();
         newBlocks.add(blocks.get(0));
         newBlocks.add(blocks.get(1));
+        for (Block block : planetBlocks) {
+            block.encode();
+        }
         newBlocks.addAll(planetBlocks);
         boolean donePlayersAndDesigns = false;
         for (int blockNumber = 2; blockNumber < blocks.size(); blockNumber++) {
@@ -147,9 +151,10 @@ public class HFileMerger {
         }
     }
 
-    private void addPlayersAndDesigns(List<Block> newBlocks, int filePlayerNumber) {
+    private void addPlayersAndDesigns(List<Block> newBlocks, int filePlayerNumber) throws Exception {
         for (int player = 0; player < 16; player++) {
             if (players[player] != null & player != filePlayerNumber) {
+                players[player].encode();
                 newBlocks.add(players[player]);
             }
         }

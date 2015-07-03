@@ -360,11 +360,10 @@ public class Decryptor
     }
 
     /**
-     * Write blocks to an output stream.  Encrypt as needed.
+     * Write blocks to an output stream.  Blocks must be previously encoded.  This method will encrypt as needed.
      */
     public void writeBlocks(OutputStream out, List<Block> blocks) throws Exception {
         for (Block block : blocks) {
-            block.encode();
             encryptBlock(block);
             writeBlock(out, block);
         }
