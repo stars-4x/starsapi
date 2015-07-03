@@ -34,9 +34,10 @@ public class PlayerBlock extends Block {
         if ((decryptedData[6] & 0x03) != 3) {
             throw new Exception("Unexpected player values " + this);
         }
-        if (decryptedData[7] != 1) {
-            throw new Exception("Unexpected player values " + this);
-        }
+        // TODO maybe AI doesn't have this?
+//        if (decryptedData[7] != 1) {
+//            throw new Exception("Unexpected player values " + this);
+//        }
         int index = 8;
 	    if (fullDataFlag) {
 	        fullDataBytes = new byte[0x68];
