@@ -8,9 +8,9 @@ public class PartialPlanetBlock extends Block {
     public int planetNumber;
     public int owner; // -1 for no owner
     public boolean isHomeworld;
-    public boolean isInUse; // inhabited or remote mined???
+    public boolean isInUseOrRobberBaron; // inhabited or remote mined???
     public boolean hasEnvironmentInfo;
-    public boolean bitWhichIsOffForRemoteMining;
+    public boolean bitWhichIsOffForRemoteMiningAndRobberBaron;
     public boolean weirdBit; // I see this on or off somewhat randomly
     public boolean hasRoute;
     public boolean hasSurfaceMinerals;
@@ -49,9 +49,9 @@ public class PartialPlanetBlock extends Block {
 	        throw new Exception("Unexpected planet flags: " + this);
 	    }
 	    isHomeworld = (flags & 0x80) != 0;
-	    isInUse = (flags & 0x04) != 0;
+	    isInUseOrRobberBaron = (flags & 0x04) != 0;
 	    hasEnvironmentInfo = (flags & 0x02) != 0;
-	    bitWhichIsOffForRemoteMining = (flags & 0x01) != 0;
+	    bitWhichIsOffForRemoteMiningAndRobberBaron = (flags & 0x01) != 0;
 	    weirdBit = (flags & 0x8000) != 0;
 	    hasRoute = (flags & 0x4000) != 0;
 	    hasSurfaceMinerals = (flags & 0x2000) != 0;
@@ -59,17 +59,17 @@ public class PartialPlanetBlock extends Block {
 	    hasInstallations = (flags & 0x0800) != 0;
 	    isTerraformed = (flags & 0x0400) != 0;
 	    hasStarbase = (flags & 0x0200) != 0;
-	    if (!bitWhichIsOffForRemoteMining && (!hasSurfaceMinerals || !isInUse)) {
+	    if (!bitWhichIsOffForRemoteMiningAndRobberBaron && !hasSurfaceMinerals && !isInUseOrRobberBaron) {
             throw new Exception("Unexpected planet flags for not data[3] & 1: " + this);
 	    }
-	    if (isInUse && typeId == BlockType.PARTIAL_PLANET && (bitWhichIsOffForRemoteMining || !hasSurfaceMinerals)) {
-	        throw new Exception("Did not expect data[3] & 4 without mining in partial planet: " + this);
+	    if (isInUseOrRobberBaron && typeId == BlockType.PARTIAL_PLANET && (bitWhichIsOffForRemoteMiningAndRobberBaron || !hasSurfaceMinerals)) {
+	        throw new Exception("Did not expect data[3] & 4 without mining-or-baron bit off in partial planet: " + this);
 	    }
-        if (!isInUse && typeId == BlockType.PLANET) {
+        if (!isInUseOrRobberBaron && typeId == BlockType.PLANET) {
             throw new Exception("Expected data[3] & 4 in planet: " + this);
         }
         int index = 4;
-        if (hasEnvironmentInfo || (hasSurfaceMinerals && !bitWhichIsOffForRemoteMining)) {
+        if (hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron)) {
             int preEnvironmentLengthByte = Util.read8(decryptedData[4]);
             if ((preEnvironmentLengthByte & 0xC0) != 0) {
                 throw new Exception("Unexpected bits at data[4]: " + this);
@@ -131,7 +131,7 @@ public class PartialPlanetBlock extends Block {
                 starbaseDesign = starbaseBytes[0] & 0x0F;
             }
         }
-        if (hasRoute) {
+        if (hasRoute && typeId == BlockType.PLANET) {
             routeShort = Util.read16(decryptedData, index);
             index += 2;
         }
@@ -145,8 +145,8 @@ public class PartialPlanetBlock extends Block {
 
 	public void convertToPartialPlanetForHFile(int turn) throws Exception {
 	    this.typeId = BlockType.PARTIAL_PLANET;
-	    isInUse = false;
-	    bitWhichIsOffForRemoteMining = true;
+	    isInUseOrRobberBaron = false;
+	    bitWhichIsOffForRemoteMiningAndRobberBaron = true;
 	    hasRoute = false;
 	    hasSurfaceMinerals = false;
 	    hasArtifact = false;
