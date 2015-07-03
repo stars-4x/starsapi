@@ -1,7 +1,7 @@
 package org.starsautohost.starsapi.block;
 
 public class PlayerBlock extends Block {
-    public int playerNumber;
+    public int playerNumber; 
     public int shipDesigns;
     public int planets;
     public int fleets;
@@ -11,6 +11,7 @@ public class PlayerBlock extends Block {
     public byte[] fullDataBytes;
     public byte[] playerRelationsBytes;
     public byte[] nameBytes;
+    public byte byte7;
     
 	public PlayerBlock() {
 		typeId = BlockType.PLAYER;
@@ -34,6 +35,7 @@ public class PlayerBlock extends Block {
         if ((decryptedData[6] & 0x03) != 3) {
             throw new Exception("Unexpected player values " + this);
         }
+        byte7 = decryptedData[7];
         // TODO maybe AI doesn't have this?
 //        if (decryptedData[7] != 1) {
 //            throw new Exception("Unexpected player values " + this);
@@ -63,19 +65,32 @@ public class PlayerBlock extends Block {
 	@Override
 	public void encode() throws Exception {
 	    if (fullDataFlag) {
-	        throw new Exception("Unimplemented encoding of full player data");
+            byte[] res = new byte[8 + 0x68 + playerRelationsBytes.length + nameBytes.length];
+            res[0] = (byte)playerNumber;
+            res[1] = (byte)shipDesigns;
+            res[2] = (byte)(planets & 0xFF);
+            res[3] = (byte)(planets >> 8);
+            res[4] = (byte)(fleets & 0xFF);
+            res[5] = (byte)((starbaseDesigns << 4) + (fleets >> 8));
+            res[6] = (byte)((logo << 3) + 7);
+            res[7] = byte7;
+            System.arraycopy(fullDataBytes, 0, res, 8, fullDataBytes.length);
+            System.arraycopy(playerRelationsBytes, 0, res, 0x70, playerRelationsBytes.length);
+            System.arraycopy(nameBytes, 0, res, 0x70 + playerRelationsBytes.length, nameBytes.length);
+            setDecryptedData(res, res.length);
+	    } else {
+	        byte[] res = new byte[8 + nameBytes.length];
+	        res[0] = (byte)playerNumber;
+	        res[1] = (byte)shipDesigns;
+	        res[2] = (byte)(planets & 0xFF);
+	        res[3] = (byte)(planets >> 8);
+	        res[4] = (byte)(fleets & 0xFF);
+	        res[5] = (byte)((starbaseDesigns << 4) + (fleets >> 8));
+	        res[6] = (byte)((logo << 3) + 3);
+	        res[7] = byte7;
+	        System.arraycopy(nameBytes, 0, res, 8, nameBytes.length);
+	        setDecryptedData(res, res.length);
 	    }
-	    byte[] res = new byte[8 + nameBytes.length];
-	    res[0] = (byte)playerNumber;
-	    res[1] = (byte)shipDesigns;
-	    res[2] = (byte)(planets & 0xFF);
-	    res[3] = (byte)(planets >> 8);
-        res[4] = (byte)(fleets & 0xFF);
-        res[5] = (byte)((starbaseDesigns << 4) + (fleets >> 8));
-        res[6] = (byte)((logo << 3) + 3);
-        res[7] = 1;
-        System.arraycopy(nameBytes, 0, res, 8, nameBytes.length);
-        setDecryptedData(res, res.length);
 	}
 
 }
