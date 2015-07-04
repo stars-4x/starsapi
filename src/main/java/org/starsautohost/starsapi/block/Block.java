@@ -103,6 +103,18 @@ public abstract class Block {
 		hasDecryptedData = true;
 	}
 	
+	public static Block copy(Block block) throws Exception {
+	    // This will create the appropriate Block-type object according to the typeId
+	    Class<? extends Block> blockClass = BlockType.getBlockClass(block.typeId);
+	    Block res = blockClass.newInstance();
+	    if (block.hasData) res.setData(block.getData(), block.size);
+	    if (block.hasDecryptedData) {
+	        res.setDecryptedData(block.getDecryptedData(), block.size);
+	        res.decode();
+	    }
+	    return res;
+	}
+	
 
 	/**
 	 * Output this block for debugging
