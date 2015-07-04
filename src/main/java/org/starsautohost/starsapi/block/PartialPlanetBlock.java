@@ -143,11 +143,16 @@ public class PartialPlanetBlock extends Block {
         }
 	}
 
+	
+    public void convertToPartialPlanetForMFile() throws Exception {
+        convertToPartialPlanetForHFile(-1);
+    }
+    
 	public void convertToPartialPlanetForHFile(int turn) throws Exception {
 	    this.typeId = BlockType.PARTIAL_PLANET;
 	    isInUseOrRobberBaron = false;
 	    bitWhichIsOffForRemoteMiningAndRobberBaron = true;
-	    hasRoute = false;
+	    // hasRoute = false;
 	    hasSurfaceMinerals = false;
 	    hasArtifact = false;
 	    hasInstallations = false;
@@ -167,6 +172,7 @@ public class PartialPlanetBlock extends Block {
 	    bout.write(flag1);
 	    int flag2 = 1;
 	    if (weirdBit) flag2 = flag2 | 0x80;
+	    if (hasRoute) flag2 = flag2 | 0x40;
 	    if (isTerraformed) flag2 = flag2 | 0x04;
 	    if (hasStarbase) flag2 = flag2 | 0x02;
 	    bout.write(flag2);
