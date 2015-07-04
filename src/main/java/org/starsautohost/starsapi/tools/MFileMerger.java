@@ -514,7 +514,13 @@ public class MFileMerger {
             // use second waypoint to set motion of fleet
             PartialFleetBlock savedBlock = fleets[fleetBlock.owner].get(fleetBlock.fleetNumber);
             if (savedBlock == null || savedBlock.mass > 0) return;
-            if (waypointBlock.warp == 0 || waypointBlock.warp > 10) return;
+            if (waypointBlock.warp > 10) {
+                // try to distinguish "gating" from "stopped"
+                savedBlock.unknownBitsWithWarp = 0;
+                savedBlock.encode();
+                return;
+            }
+            if (waypointBlock.warp == 0) return;
             int deltaX = waypointBlock.x - savedBlock.x;
             int deltaY = waypointBlock.y - savedBlock.y;
             int largest = Math.max(Math.abs(deltaX), Math.abs(deltaY));
