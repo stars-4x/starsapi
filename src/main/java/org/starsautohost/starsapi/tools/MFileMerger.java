@@ -37,14 +37,25 @@ public class MFileMerger {
     private static boolean wantsHelp(String[] args) {
         if (args.length == 0) return true;
         for (String arg : args) {
-            if (arg.equals("-h") || arg.equals("-help") || arg.equals("--help")) {
+            if (arg.equalsIgnoreCase("-help") || arg.equalsIgnoreCase("--help")) {
                 return true;
             }
         }
+        if (args.length == 1 && args[0].equalsIgnoreCase("-h")) return true;
         return false;
     }
     
     public static void main(String[] args) throws Exception {
+        if (wantsHelp(args)) {
+            System.out.println("Usage: java -jar MFileMerger.jar file...");
+            System.out.println();
+            System.out.println("All M files supplied on the command line will have their data augmented");
+            System.out.println("with the data on each planet, player, design, fleet, minefield, packet,");
+            System.out.println("salvage, or wormhole from any of the files.");
+            System.out.println();
+            System.out.println("Backups of each input M file will be retained with suffix .backup-m#.");
+            return;
+        }
         new MFileMerger().run(args);
     }
     
@@ -66,18 +77,7 @@ public class MFileMerger {
     }
     private Map<Integer, ObjectBlock> objects = new TreeMap<Integer, ObjectBlock>();
     
-    private void run(String[] args) throws Exception {
-        if (wantsHelp(args)) {
-            System.out.println("Usage: java -jar MFileMerger.jar file...");
-            System.out.println();
-            System.out.println("All M files supplied on the command line will have their data augmented");
-            System.out.println("with the data on each planet, player, design, fleet, minefield, packet,");
-            System.out.println("salvage, or wormhole from any of the files.");
-            System.out.println();
-            System.out.println("Backups of each input M file will be retained with suffix .backup-m#.");
-            return;
-        }
-        
+    public void run(String[] args) throws Exception {
         for (String filename : args) {
             List<Block> blocks;
             try {

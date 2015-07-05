@@ -25,27 +25,15 @@ public class HFileMerger {
     private static boolean wantsHelp(String[] args) {
         if (args.length == 0) return true;
         for (String arg : args) {
-            if (arg.equals("-h") || arg.equals("-help") || arg.equals("--help")) {
+            if (arg.equalsIgnoreCase("-help") || arg.equalsIgnoreCase("--help")) {
                 return true;
             }
         }
+        if (args.length == 1 && args[0].equalsIgnoreCase("-h")) return true;
         return false;
     }
     
     public static void main(String[] args) throws Exception {
-        new HFileMerger().run(args);
-    }
-    
-    private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
-    private Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
-    private PlayerBlock[] players = new PlayerBlock[16];
-    private int[][] fleetCount = new int[16][16];
-    private DesignInfo[][] shipDesigns = new DesignInfo[16][16];
-    private DesignInfo[][] starbaseDesigns = new DesignInfo[16][10];
-    private int numPlanets;
-    private List<PartialPlanetBlock> planetBlocks;
-    
-    private void run(String[] args) throws Exception {
         if (wantsHelp(args)) {
             System.out.println("Usage: java -jar HFileMerger.jar file...");
             System.out.println();
@@ -60,6 +48,19 @@ public class HFileMerger {
             return;
         }
         
+        new HFileMerger().run(args);
+    }
+    
+    private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
+    private Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
+    private PlayerBlock[] players = new PlayerBlock[16];
+    private int[][] fleetCount = new int[16][16];
+    private DesignInfo[][] shipDesigns = new DesignInfo[16][16];
+    private DesignInfo[][] starbaseDesigns = new DesignInfo[16][10];
+    private int numPlanets;
+    private List<PartialPlanetBlock> planetBlocks;
+    
+    public void run(String[] args) throws Exception {
         for (String filename : args) {
             List<Block> blocks;
             try {
