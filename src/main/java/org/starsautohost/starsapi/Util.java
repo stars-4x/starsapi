@@ -61,6 +61,36 @@ public class Util {
 				read8(data[offset]);
 	}
 	
+    public static void write32(byte[] data, int offset, long value) {
+        data[offset + 3] = (byte)((value >> 24) & 0xFF);
+        data[offset + 2] = (byte)((value >> 16) & 0xFF);
+        data[offset + 1] = (byte)((value >> 8) & 0xFF);
+        data[offset] = (byte)(value & 0xFF);
+    }
+
+	public static long readN(byte[] data, int offset, int byteLen) {
+	    if (byteLen == 0) return 0;
+	    else if (byteLen == 1) return Util.read8(data[offset]);
+	    else if (byteLen == 2) return Util.read16(data, offset);
+	    else if (byteLen == 4) return Util.read32(data, offset);
+	    else throw new IllegalArgumentException("Unexpected byteLen " + byteLen);
+	}
+
+    public static int writeN(byte[] data, int offset, long value) {
+        if (value < 0) throw new IllegalArgumentException();
+        else if (value == 0) return 0;
+        else if (value < 256) {
+            data[offset] = (byte)value;
+            return 1;
+        } else if (value < 65536) {
+            Util.write16(data, offset, (int) value);
+            return 2;
+        } else {
+            Util.write32(data, offset, value);
+            return 4;
+        }
+    }
+
 	
 	/**
 	 * For debugging!

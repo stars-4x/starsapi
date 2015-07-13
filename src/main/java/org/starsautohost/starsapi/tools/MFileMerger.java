@@ -59,6 +59,7 @@ public class MFileMerger {
         new MFileMerger().run(args);
     }
     
+    private boolean mineralSharing = true;
     private int playerMask = 0; // for setting wormhole been-through 
     private int actualTurn;
     private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
@@ -69,10 +70,10 @@ public class MFileMerger {
     private int numPlanets;
     private List<PartialPlanetBlock> planetBlocks;
     @SuppressWarnings("unchecked")
-    private Map<Integer, PartialFleetBlock>[] fleets = new Map[16];
+    private Map<Integer, FleetInfo>[] fleets = new Map[16];
     {
         for (int i = 0; i < 16; i++) {
-            fleets[i] = new TreeMap<Integer, PartialFleetBlock>();
+            fleets[i] = new TreeMap<Integer, FleetInfo>();
         }
     }
     private Map<Integer, ObjectBlock> objects = new TreeMap<Integer, ObjectBlock>();
@@ -155,7 +156,8 @@ public class MFileMerger {
                 planets.put(pblock.planetNumber, Collections.<Block>singletonList(pblock));
             }
             for (int i = 0; i < 16; i++) {
-                for (PartialFleetBlock fblock : MFileMerger.this.fleets[i].values()) {
+                for (FleetInfo fleetInfo : MFileMerger.this.fleets[i].values()) {
+                    PartialFleetBlock fblock = fleetInfo.merge();
                     fleets.put(fblock.getFleetIdAndOwner(), Collections.<Block>singletonList(fblock));
                 }
             }
@@ -326,9 +328,11 @@ public class MFileMerger {
                 // include FleetBlock as an extension of PartialFleetBlock
                 if (block instanceof PartialFleetBlock) {
                     PartialFleetBlock fblock = (PartialFleetBlock)block;
-                    currentBlocks = new ArrayList<Block>();
-                    currentBlocks.add(fblock);
-                    fleets.put(fblock.getFleetIdAndOwner(), currentBlocks);
+                    if (fblock.kindByte == PartialFleetBlock.FULL_KIND || (!mineralSharing && fblock.kindByte == PartialFleetBlock.PICK_POCKET_KIND)) {
+                        currentBlocks = new ArrayList<Block>();
+                        currentBlocks.add(fblock);
+                        fleets.put(fblock.getFleetIdAndOwner(), currentBlocks);
+                    }
                 }
                 if (block instanceof WaypointBlock || block instanceof FleetNameBlock) {
                     currentBlocks.add(block);
@@ -458,7 +462,11 @@ public class MFileMerger {
                 planetInfo = new PlanetInfo();
                 planets.put(planetNumber, planetInfo);
             }
-            pblock.convertToPartialPlanetForMFile();
+            if (mineralSharing) {
+                pblock.convertToPartialPlanetForMFileWithMinerals();
+            } else {
+                pblock.convertToPartialPlanetForMFile();
+            }
             planetInfo.consider(pblock);
         }
 
@@ -500,41 +508,19 @@ public class MFileMerger {
         }
         
         private void processFleetBlock(PartialFleetBlock fleetBlock) throws Exception {
-            PartialFleetBlock savedBlock = fleets[fleetBlock.owner].get(fleetBlock.fleetNumber);
-            if (savedBlock == null || (savedBlock.mass == 0 && fleetBlock.mass > 0)) {
-                fleetBlock = (PartialFleetBlock) Block.copy(fleetBlock);
-                fleetBlock.convertToPartialFleet();
-                if (fleetBlock.mass == 0) fleetBlock.unknownBitsWithWarp = 16;
-                fleetBlock.encode();
-                fleets[fleetBlock.owner].put(fleetBlock.fleetNumber, fleetBlock);
+            FleetInfo fleetInfo = fleets[fleetBlock.owner].get(fleetBlock.fleetNumber);
+            if (fleetInfo == null) {
+                fleetInfo = new FleetInfo();
+                fleets[fleetBlock.owner].put(fleetBlock.fleetNumber, fleetInfo);
             }
+            fleetInfo.consider(fleetBlock);
         }
-        
+
         private void processWaypointBlock(PartialFleetBlock fleetBlock, WaypointBlock waypointBlock) {
             // use second waypoint to set motion of fleet
-            PartialFleetBlock savedBlock = fleets[fleetBlock.owner].get(fleetBlock.fleetNumber);
-            if (savedBlock == null || savedBlock.mass > 0) return;
-            if (waypointBlock.warp > 10) {
-                // try to distinguish "gating" from "stopped"
-                savedBlock.unknownBitsWithWarp = 0;
-                savedBlock.encode();
-                return;
-            }
-            if (waypointBlock.warp == 0) return;
-            int deltaX = waypointBlock.x - savedBlock.x;
-            int deltaY = waypointBlock.y - savedBlock.y;
-            int largest = Math.max(Math.abs(deltaX), Math.abs(deltaY));
-            if (largest > 125) {
-                deltaX = deltaX * 125 / largest;
-                deltaY = deltaY * 125 / largest;
-            }
-            deltaX += 127;
-            deltaY += 127;
-            savedBlock.deltaX = deltaX;
-            savedBlock.deltaY = deltaY;
-            savedBlock.warp = waypointBlock.warp;
-            savedBlock.unknownBitsWithWarp = 16;
-            savedBlock.encode();
+            FleetInfo fleetInfo = fleets[fleetBlock.owner].get(fleetBlock.fleetNumber);
+            if (fleetInfo == null) return;
+            fleetInfo.considerWaypointBlock(waypointBlock);
         }
         
         private void processObjectBlock(ObjectBlock object) throws Exception {
@@ -546,6 +532,14 @@ public class MFileMerger {
             }
             objects.put(object.getObjectId(), object);
         }
+    }
+    
+    private static void copyPartialFleetData(PartialFleetBlock hasMass, PartialFleetBlock needsMass) {
+        needsMass.deltaX = hasMass.deltaX;
+        needsMass.deltaY = hasMass.deltaY;
+        needsMass.warp = hasMass.warp;
+        needsMass.unknownBitsWithWarp = hasMass.unknownBitsWithWarp;
+        needsMass.mass = hasMass.mass;
     }
     
     private void checkGameIdsAndYearsAndPlayers(Map<String, List<Block>> files) throws Exception {
@@ -614,6 +608,62 @@ public class MFileMerger {
         return false;
     }
     
+    private class FleetInfo {
+        PartialFleetBlock best;
+        byte kind;
+        
+        PartialFleetBlock merge() {
+            best.encode();
+            return best;
+        }
+        
+        public void considerWaypointBlock(WaypointBlock waypointBlock) {
+            if (best == null || best.mass > 0) return;
+            if (waypointBlock.warp > 10) {
+                // try to distinguish "gating" from "stopped"
+                best.unknownBitsWithWarp = 0;
+                return;
+            }
+            if (waypointBlock.warp == 0) return;
+            int deltaX = waypointBlock.x - best.x;
+            int deltaY = waypointBlock.y - best.y;
+            int largest = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+            if (largest > 125) {
+                deltaX = deltaX * 125 / largest;
+                deltaY = deltaY * 125 / largest;
+            }
+            deltaX += 127;
+            deltaY += 127;
+            best.deltaX = deltaX;
+            best.deltaY = deltaY;
+            best.warp = waypointBlock.warp;
+            best.unknownBitsWithWarp = 16;
+        }
+        
+        void consider(PartialFleetBlock block) throws Exception {
+            byte blockKind = block.kindByte;
+            if (kind >= blockKind) {
+                if (best.mass == 0 && block.mass > 0) {
+                    copyPartialFleetData(block, best);
+                }
+            } else {
+                block = (PartialFleetBlock) Block.copy(block);
+                if (mineralSharing) {
+                    block.convertToPartialFleetWithMinerals();
+                } else {
+                    block.convertToPartialFleet();
+                }
+                if (best != null && best.mass > 0 && block.mass == 0) {
+                    copyPartialFleetData(best, block);
+                } else if (block.mass == 0) {
+                    block.unknownBitsWithWarp = 16;
+                }
+                best = block;
+                kind = blockKind;
+            }
+        }
+    }
+    
     private static class PlanetInfo {
         PartialPlanetBlock best;
         PartialPlanetBlock bestWithEnvironment;
@@ -675,7 +725,9 @@ public class MFileMerger {
                 return;
             }
             if (block.weirdBit) best.weirdBit = true; // ???
-            if (block.hasEnvironmentInfo && !best.hasEnvironmentInfo) {
+            if (block.isInUseOrRobberBaron && !best.isInUseOrRobberBaron) {
+                best = block;
+            } else if (block.hasEnvironmentInfo && !best.hasEnvironmentInfo) {
                 best = block;
             } else if (block.hasEnvironmentInfo == best.hasEnvironmentInfo && block.hasStarbase && !best.hasStarbase) {
                 best = block;

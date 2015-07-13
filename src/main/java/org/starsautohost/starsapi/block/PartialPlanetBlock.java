@@ -23,7 +23,7 @@ public class PartialPlanetBlock extends Block {
     public int gravity, temperature, radiation;
     public int origGravity, origTemperature, origRadiation;
     public int estimatesShort;
-    public byte[] surfaceMineralsAndPopulationBytes;
+    public long ironium, boranium, germanium, population, fuel;
     public byte[] installationsBytes;
     public int starbaseDesign;
     public byte[] starbaseBytes;
@@ -98,19 +98,24 @@ public class PartialPlanetBlock extends Block {
             }
         }
         if (hasSurfaceMinerals) {
-            int surfaceMineralsAndPopulationLengthByte = Util.read8(decryptedData[index]);
-            int popBits = (surfaceMineralsAndPopulationLengthByte & 0xC0) >> 6;
-            int gBits = (surfaceMineralsAndPopulationLengthByte & 0x30) >> 4;
-            int bBits = (surfaceMineralsAndPopulationLengthByte & 0x0C) >> 2;
-            int iBits = (surfaceMineralsAndPopulationLengthByte & 0x03);
-            int surfaceMineralsAndPopulationLength = 1;
-            surfaceMineralsAndPopulationLength += 4 >> (3 - iBits);
-            surfaceMineralsAndPopulationLength += 4 >> (3 - bBits);
-            surfaceMineralsAndPopulationLength += 4 >> (3 - gBits);
-            surfaceMineralsAndPopulationLength += 4 >> (3 - popBits);
-            surfaceMineralsAndPopulationBytes = new byte[surfaceMineralsAndPopulationLength];
-            System.arraycopy(decryptedData, index, surfaceMineralsAndPopulationBytes, 0, surfaceMineralsAndPopulationLength);
-            index += surfaceMineralsAndPopulationLength;
+            int contentsLengths = Util.read8(decryptedData[index]);
+            int iLength = contentsLengths & 0x03;
+            iLength = 4 >> (3 - iLength);
+            int bLength = (contentsLengths & 0x0C) >> 2;
+            bLength = 4 >> (3 - bLength);
+            int gLength = (contentsLengths & 0x30) >> 4;
+            gLength = 4 >> (3 - gLength);
+            int popLength = (contentsLengths & 0xC0) >> 6;
+            popLength = 4 >> (3 - popLength);
+            index += 1;
+            ironium = Util.readN(decryptedData, index, iLength);
+            index += iLength;
+            boranium = Util.readN(decryptedData, index, bLength);
+            index += bLength;
+            germanium = Util.readN(decryptedData, index, gLength);
+            index += gLength;
+            population = Util.readN(decryptedData, index, popLength);
+            index += popLength;
         }
         if (hasInstallations) {
             installationsBytes = new byte[8];
@@ -159,24 +164,46 @@ public class PartialPlanetBlock extends Block {
 	    if (turn != -1) this.turn = turn;
 	    this.encode();
 	}
-	
+
+    public void convertToPartialPlanetForMFileWithMinerals() throws Exception {
+        this.typeId = BlockType.PARTIAL_PLANET;
+        // hasRoute = false;
+        hasArtifact = false;
+        hasInstallations = false;
+        this.turn = -1;
+        if (isInUseOrRobberBaron || hasSurfaceMinerals) {
+            isInUseOrRobberBaron = true;
+            bitWhichIsOffForRemoteMiningAndRobberBaron = false;
+            population = 0;
+            // hasSurfaceMinerals = false;
+        } else {
+            isInUseOrRobberBaron = false;
+            bitWhichIsOffForRemoteMiningAndRobberBaron = true;
+            hasSurfaceMinerals = false;
+        }
+        this.encode();
+    }
+    
 	@Override
 	public void encode() throws Exception {
-	    // NOTE only encodes partial planet for H file merge
+	    // NOTE only encodes partial planet, possibly with minerals
 	    ByteArrayOutputStream bout = new ByteArrayOutputStream();
 	    bout.write(planetNumber & 0xFF);
 	    bout.write((planetNumber >> 8) + (owner << 3));
-	    int flag1 = 1;
+	    int flag1 = 0;
 	    if (isHomeworld) flag1 = flag1 | 0x80;
+	    if (isInUseOrRobberBaron) flag1 = flag1 | 0x04;
 	    if (hasEnvironmentInfo) flag1 = flag1 | 0x02;
+	    if (bitWhichIsOffForRemoteMiningAndRobberBaron) flag1 = flag1 | 0x01;
 	    bout.write(flag1);
 	    int flag2 = 1;
 	    if (weirdBit) flag2 = flag2 | 0x80;
 	    if (hasRoute) flag2 = flag2 | 0x40;
+	    if (hasSurfaceMinerals) flag2 = flag2 | 0x20;
 	    if (isTerraformed) flag2 = flag2 | 0x04;
 	    if (hasStarbase) flag2 = flag2 | 0x02;
 	    bout.write(flag2);
-	    if (hasEnvironmentInfo) {
+        if (hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron)) {
 	        if (preEnvironmentBytes != null) bout.write(preEnvironmentBytes); 
 	        bout.write(ironiumConc);
 	        bout.write(boraniumConc);
@@ -194,6 +221,25 @@ public class PartialPlanetBlock extends Block {
                 bout.write(estimatesShort >> 8);
             }
         }
+        if (hasSurfaceMinerals) {
+            byte[] res = new byte[getContentLength()];
+            int index = 1;
+            int iLength = Util.writeN(res, index, ironium);
+            index += iLength;
+            if (iLength == 4) iLength = 3;
+            int bLength = Util.writeN(res, index, boranium);
+            index += bLength;
+            if (bLength == 4) bLength = 3;
+            int gLength = Util.writeN(res, index, germanium);
+            index += gLength;
+            if (gLength == 4) gLength = 3;
+            int popLength = Util.writeN(res, index, population);
+            index += popLength;
+            if (popLength == 4) popLength = 3;
+            byte igbpopByte = (byte)(iLength | (bLength << 2) | (gLength << 4) | (popLength << 6));
+            res[0] = igbpopByte;
+            bout.write(res);
+        }
         if (hasStarbase) {
             bout.write(starbaseDesign);
         }
@@ -206,4 +252,17 @@ public class PartialPlanetBlock extends Block {
         setData(bytes, bytes.length);
         encrypted = false;
 	}
+	
+    private int getContentLength() {
+        return 1 + byteLengthForInt(ironium) + byteLengthForInt(boranium) + byteLengthForInt(germanium)
+                + byteLengthForInt(population);
+    }
+    
+    private static int byteLengthForInt(long n) {
+        if (n == 0) return 0;
+        if (n < 256) return 1;
+        if (n < 65536) return 2;
+        return 4;
+    }
+
 }
