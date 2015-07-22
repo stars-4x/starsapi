@@ -136,6 +136,7 @@ public class MFileMerger {
     
     private class FileOutProcessor {
         String filename;
+        int thisPlayerNumber = -1;
         List<Block> blocks;
         PlayerBlock[] players = MFileMerger.this.players.clone();
         DesignInfo[][] shipDesigns = MFileMerger.this.shipDesigns.clone();
@@ -149,9 +150,16 @@ public class MFileMerger {
         List<Integer> shipDesignOwner = new ArrayList<Integer>();
         List<Integer> starbaseDesignOwner = new ArrayList<Integer>();
 
-        public FileOutProcessor(String filename) {
+        public FileOutProcessor(String filename) throws Exception {
             this.filename = filename;
             this.blocks = files.get(filename);
+            for (Block block : this.blocks) {
+                if (block instanceof FileHeaderBlock) {
+                    thisPlayerNumber = ((FileHeaderBlock)block).playerNumber;
+                    break;
+                }
+            }
+            if (thisPlayerNumber < 0) throw new Exception("Could not find player number");
             for (PartialPlanetBlock pblock : MFileMerger.this.planetBlocks) {
                 planets.put(pblock.planetNumber, Collections.<Block>singletonList(pblock));
             }
@@ -378,10 +386,12 @@ public class MFileMerger {
         }
 
         private void processPlayerBlock(PlayerBlock playerBlock) throws Exception {
-            if (playerBlock.fullDataFlag) {
+            if (playerBlock.playerNumber == thisPlayerNumber) {
                 playerBlock.planets = numPlanets;
                 players[playerBlock.playerNumber] = playerBlock;
                 playerBlock.encode();
+            } else if (playerBlock.fullDataFlag) {
+                players[playerBlock.playerNumber] = playerBlock;
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
             for (int i = 0; i < playerBlock.shipDesigns; i++) {
