@@ -387,11 +387,19 @@ public class MFileMerger {
 
         private void processPlayerBlock(PlayerBlock playerBlock) throws Exception {
             if (playerBlock.playerNumber == thisPlayerNumber) {
-                playerBlock.planets = numPlanets;
-                players[playerBlock.playerNumber] = playerBlock;
-                playerBlock.encode();
+                PlayerBlock playerBlockToWrite = (PlayerBlock) Block.copy(playerBlock);
+                playerBlockToWrite.planets = numPlanets;
+                players[playerBlock.playerNumber] = playerBlockToWrite;
+                playerBlockToWrite.encode();
             } else if (playerBlock.fullDataFlag) {
-                players[playerBlock.playerNumber] = playerBlock;
+                PlayerBlock playerBlockToWrite = (PlayerBlock) Block.copy(playerBlock);
+                PlayerBlock otherVersion = players[playerBlock.playerNumber];
+                playerBlockToWrite.planets = 0;
+                playerBlockToWrite.fleets = otherVersion.fleets;
+                playerBlockToWrite.shipDesigns = otherVersion.shipDesigns;
+                playerBlockToWrite.starbaseDesigns = otherVersion.starbaseDesigns;
+                players[playerBlock.playerNumber] = playerBlockToWrite;
+                playerBlockToWrite.encode();
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
             for (int i = 0; i < playerBlock.shipDesigns; i++) {
