@@ -60,19 +60,19 @@ public class PartialPlanetBlock extends Block {
 	    isTerraformed = (flags & 0x0400) != 0;
 	    hasStarbase = (flags & 0x0200) != 0;
 	    if (!bitWhichIsOffForRemoteMiningAndRobberBaron && !hasSurfaceMinerals && !isInUseOrRobberBaron) {
-            throw new Exception("Unexpected planet flags for not data[3] & 1: " + this);
+            throw new Exception("Unexpected planet flags for not data[2] & 1: " + this);
 	    }
-	    if (isInUseOrRobberBaron && typeId == BlockType.PARTIAL_PLANET && (bitWhichIsOffForRemoteMiningAndRobberBaron || !hasSurfaceMinerals)) {
-	        throw new Exception("Did not expect data[3] & 4 without mining-or-baron bit off in partial planet: " + this);
+	    if (isInUseOrRobberBaron && typeId == BlockType.PARTIAL_PLANET && bitWhichIsOffForRemoteMiningAndRobberBaron) {
+	        throw new Exception("Did not expect data[2] & 5 in partial planet: " + this);
 	    }
         if (!isInUseOrRobberBaron && typeId == BlockType.PLANET) {
-            throw new Exception("Expected data[3] & 4 in planet: " + this);
+            throw new Exception("Expected data[2] & 4 in planet: " + this);
         }
         int index = 4;
         if (hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron)) {
             int preEnvironmentLengthByte = Util.read8(decryptedData[4]);
             if ((preEnvironmentLengthByte & 0xC0) != 0) {
-                throw new Exception("Unexpected bits at data[4]: " + this);
+                throw new Exception("Unexpected bits at data[3]: " + this);
             }
             int preEnvironmentLength = 1;
             preEnvironmentLength += (preEnvironmentLengthByte & 0x30) >> 4;
