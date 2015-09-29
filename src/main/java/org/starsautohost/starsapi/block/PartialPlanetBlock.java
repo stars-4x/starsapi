@@ -69,7 +69,7 @@ public class PartialPlanetBlock extends Block {
             throw new Exception("Expected data[2] & 4 in planet: " + this);
         }
         int index = 4;
-        if (hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron)) {
+        if (canSeeEnvironment()) {
             int preEnvironmentLengthByte = Util.read8(decryptedData[4]);
             if ((preEnvironmentLengthByte & 0xC0) != 0) {
                 throw new Exception("Unexpected bits at data[3]: " + this);
@@ -148,6 +148,10 @@ public class PartialPlanetBlock extends Block {
         }
 	}
 
+    public boolean canSeeEnvironment() {
+        return hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron);
+    }
+
 	
     public void convertToPartialPlanetForMFile() throws Exception {
         convertToPartialPlanetForHFile(-1);
@@ -155,6 +159,7 @@ public class PartialPlanetBlock extends Block {
     
 	public void convertToPartialPlanetForHFile(int turn) throws Exception {
 	    this.typeId = BlockType.PARTIAL_PLANET;
+	    if (canSeeEnvironment()) hasEnvironmentInfo = true;
 	    isInUseOrRobberBaron = false;
 	    bitWhichIsOffForRemoteMiningAndRobberBaron = true;
 	    // hasRoute = false;
@@ -203,7 +208,7 @@ public class PartialPlanetBlock extends Block {
 	    if (isTerraformed) flag2 = flag2 | 0x04;
 	    if (hasStarbase) flag2 = flag2 | 0x02;
 	    bout.write(flag2);
-        if (hasEnvironmentInfo || ((hasSurfaceMinerals || isInUseOrRobberBaron) && !bitWhichIsOffForRemoteMiningAndRobberBaron)) {
+        if (canSeeEnvironment()) {
 	        if (preEnvironmentBytes != null) bout.write(preEnvironmentBytes); 
 	        bout.write(ironiumConc);
 	        bout.write(boraniumConc);

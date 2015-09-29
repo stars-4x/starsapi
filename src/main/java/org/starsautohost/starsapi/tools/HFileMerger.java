@@ -406,7 +406,7 @@ public class HFileMerger {
             boolean mergedLatest = false;
             boolean mergedLatestWithStarbase = false;
             PartialPlanetBlock res;
-            if (!latest.hasEnvironmentInfo && latestWithEnvironment != null) {
+            if (!latest.canSeeEnvironment() && latestWithEnvironment != null) {
                 res = latestWithEnvironment;
                 res.owner = latest.owner;
                 res.weirdBit = latest.weirdBit;
@@ -437,7 +437,7 @@ public class HFileMerger {
         static String printPlanet(PartialPlanetBlock block) {
             String res = "Turn:" + block.turn;
             if (block.owner >= 0) res += ", Owner:" + block.owner;
-            if (block.hasEnvironmentInfo) res += ", Environment";
+            if (block.canSeeEnvironment()) res += ", Environment";
             if (block.hasStarbase) res += ", Starbase:"+ block.starbaseDesign;
             return res;
         }
@@ -446,7 +446,7 @@ public class HFileMerger {
             if (block.hasStarbase && (latestWithStarbase == null || latestWithStarbase.turn < block.turn)) {
                 latestWithStarbase = block;
             }
-            if (block.hasEnvironmentInfo && (latestWithEnvironment == null || latestWithEnvironment.turn < block.turn)) {
+            if (block.canSeeEnvironment() && (latestWithEnvironment == null || latestWithEnvironment.turn < block.turn)) {
                 latestWithEnvironment = block;
             }
             if (latest == null || latest.turn < block.turn) {
@@ -455,9 +455,9 @@ public class HFileMerger {
             }
             if (latest.turn == block.turn) {
                 if (block.weirdBit) latest.weirdBit = true; // ???
-                if (block.hasEnvironmentInfo && !latest.hasEnvironmentInfo) {
+                if (block.canSeeEnvironment() && !latest.canSeeEnvironment()) {
                     latest = block;
-                } else if (block.hasEnvironmentInfo == latest.hasEnvironmentInfo && 
+                } else if (block.canSeeEnvironment() == latest.canSeeEnvironment() && 
                         block.hasStarbase && !latest.hasStarbase) {
                     latest = block;
                 }

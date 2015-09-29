@@ -735,7 +735,7 @@ public class MFileMerger {
             if (block.hasStarbase && bestWithStarbase == null) {
                 bestWithStarbase = block;
             }
-            if (block.hasEnvironmentInfo && bestWithEnvironment == null) {
+            if (block.canSeeEnvironment() && bestWithEnvironment == null) {
                 bestWithEnvironment = block;
             }
             if (best == null) {
@@ -745,9 +745,9 @@ public class MFileMerger {
             if (block.weirdBit) best.weirdBit = true; // ???
             if (block.isInUseOrRobberBaron && !best.isInUseOrRobberBaron) {
                 best = block;
-            } else if (block.hasEnvironmentInfo && !best.hasEnvironmentInfo) {
+            } else if (block.canSeeEnvironment() && !best.canSeeEnvironment()) {
                 best = block;
-            } else if (block.hasEnvironmentInfo == best.hasEnvironmentInfo && block.hasStarbase && !best.hasStarbase) {
+            } else if (block.canSeeEnvironment() == best.canSeeEnvironment() && block.hasStarbase && !best.hasStarbase) {
                 best = block;
             }
         }
