@@ -14,7 +14,8 @@ public class PartialFleetBlock extends Block {
     public int[] shipCount = new int[16];
     public long ironium, boranium, germanium, population, fuel;
     public byte[] fullFleetBytes = new byte[0];
-    public int deltaX, deltaY, unknownBitsWithWarp, warp, mass; // partial fleet data
+    public int deltaX, deltaY, unknownBitsWithWarp, warp; // partial fleet data
+    public long mass; // partial fleet data
     
 	public PartialFleetBlock() {
 		typeId = BlockType.PARTIAL_FLEET;
@@ -116,9 +117,9 @@ public class PartialFleetBlock extends Block {
                 throw new Exception("Unexpected extra information in warp: " + this);
             }
             index++;
-            mass = Util.read16(decryptedData, index);
-            index += 2;
-            if (decryptedData[index++] != 0 || decryptedData[index++] != 0 || index != size) {
+            mass = Util.read32(decryptedData, index);
+            index += 4;
+            if (index != size) {
                 throw new Exception("Unexpected trailing data in partial fleet: " + this);
             }
         }
@@ -204,9 +205,8 @@ public class PartialFleetBlock extends Block {
             res[index] = (byte)(unknownBitsWithWarp + warp);
             index++;
             res[index++] = 0;
-            Util.write16(res, index, mass);
-            index += 2;
-            Util.write16(res, index, 0);
+            Util.write32(res, index, mass);
+            index += 4;
         }
         setDecryptedData(res, res.length);
         setData(res, res.length);
