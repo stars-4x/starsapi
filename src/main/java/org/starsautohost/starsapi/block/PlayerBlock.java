@@ -177,9 +177,10 @@ public class PlayerBlock extends Block {
 	    PlayerBlock block = new PlayerBlock();
 	    block.playerNumber = playerNumber;
 	    block.makeBeefyFullData(PRT.JOAT, false);
-	    if (playerNumber < 10) {
+	    if (playerNumber < 9) {
 	        block.nameBytes = new byte[] { 2, (byte)191, (byte)(203 + playerNumber), 2, (byte)191, (byte)(203 + playerNumber) };
 	    } else {
+	        // player number 9 is displayed as 10
             block.nameBytes = new byte[] { 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10), 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10) };
 	    }
 	    return block;
