@@ -18,13 +18,20 @@ public class PartialPlanetBlock extends Block {
     public boolean hasInstallations;
     public boolean isTerraformed;
     public boolean hasStarbase;
-    public byte[] preEnvironmentBytes;
+    public byte[] fractionalMinConcBytes = { 0 };
     public int ironiumConc, boraniumConc, germaniumConc;
     public int gravity, temperature, radiation;
     public int origGravity, origTemperature, origRadiation;
-    public int estimatesShort;
-    public long ironium, boranium, germanium, population, fuel;
-    public byte[] installationsBytes;
+    public int defensesEstimate; // in sixteenths of 100%
+    public int popEstimate; // in 400s, up to 4090
+    public long ironium, boranium, germanium, population;
+    public int excessPop; // the difference between 0 and 100? got this name from other utilities
+    public int mines;
+    public int factories;
+    public int defenses;
+    public byte unknownInstallationsByte;
+    public boolean contributeOnlyLeftoverResourcesToResearch;
+    public boolean hasScanner;
     public int starbaseDesign;
     public byte[] starbaseBytes;
     public int routeShort;
@@ -78,8 +85,8 @@ public class PartialPlanetBlock extends Block {
             preEnvironmentLength += (preEnvironmentLengthByte & 0x30) >> 4;
             preEnvironmentLength += (preEnvironmentLengthByte & 0x0C) >> 2;
             preEnvironmentLength += (preEnvironmentLengthByte & 0x03);
-            preEnvironmentBytes = new byte[preEnvironmentLength];
-            System.arraycopy(decryptedData, 4, preEnvironmentBytes, 0, preEnvironmentLength);
+            fractionalMinConcBytes = new byte[preEnvironmentLength];
+            System.arraycopy(decryptedData, 4, fractionalMinConcBytes, 0, preEnvironmentLength);
             index += preEnvironmentLength;
             ironiumConc = Util.read8(decryptedData[index++]);
             boraniumConc = Util.read8(decryptedData[index++]);
@@ -93,7 +100,9 @@ public class PartialPlanetBlock extends Block {
                 origRadiation = Util.read8(decryptedData[index++]);
             }
             if (owner >= 0) {
-                estimatesShort = Util.read16(decryptedData, index);
+                int estimatesShort = Util.read16(decryptedData, index);
+                defensesEstimate = estimatesShort / 4096;
+                popEstimate = estimatesShort % 4096;
                 index += 2;
             }
         }
@@ -118,9 +127,19 @@ public class PartialPlanetBlock extends Block {
             index += popLength;
         }
         if (hasInstallations) {
-            installationsBytes = new byte[8];
+            byte[] installationsBytes = new byte[8];
             System.arraycopy(decryptedData, index, installationsBytes, 0, 8);
             index += 8;
+            excessPop = installationsBytes[0] & 0xFF;
+            mines = (installationsBytes[1] & 0xFF) | (installationsBytes[2] & 0x0F) << 8;
+            factories = (installationsBytes[2] & 0xF0) >> 4 | (installationsBytes[3] & 0xFF) << 4;
+            defenses = installationsBytes[4];
+            unknownInstallationsByte = installationsBytes[5];
+            contributeOnlyLeftoverResourcesToResearch = (installationsBytes[6] & 0x80) != 0;
+            hasScanner = (installationsBytes[6] & 0x01) == 0;
+            if ((installationsBytes[6] & 0x7E) != 0 || installationsBytes[7] != 0) {
+                throw new Exception("Unexpected installations data: " + this);
+            }
         }
         if (hasStarbase) {
             if (typeId == BlockType.PARTIAL_PLANET) {
@@ -191,7 +210,6 @@ public class PartialPlanetBlock extends Block {
     
 	@Override
 	public void encode() throws Exception {
-	    // NOTE only encodes partial planet, possibly with minerals
 	    ByteArrayOutputStream bout = new ByteArrayOutputStream();
 	    bout.write(planetNumber & 0xFF);
 	    bout.write((planetNumber >> 8) + (owner << 3));
@@ -205,11 +223,13 @@ public class PartialPlanetBlock extends Block {
 	    if (weirdBit) flag2 = flag2 | 0x80;
 	    if (hasRoute) flag2 = flag2 | 0x40;
 	    if (hasSurfaceMinerals) flag2 = flag2 | 0x20;
+	    if (hasArtifact) flag2 = flag2 | 0x10;
+	    if (hasInstallations) flag2 = flag2 | 0x08;
 	    if (isTerraformed) flag2 = flag2 | 0x04;
 	    if (hasStarbase) flag2 = flag2 | 0x02;
 	    bout.write(flag2);
         if (canSeeEnvironment()) {
-	        if (preEnvironmentBytes != null) bout.write(preEnvironmentBytes); 
+	        if (fractionalMinConcBytes != null) bout.write(fractionalMinConcBytes); 
 	        bout.write(ironiumConc);
 	        bout.write(boraniumConc);
 	        bout.write(germaniumConc);
@@ -222,8 +242,8 @@ public class PartialPlanetBlock extends Block {
                 bout.write(origRadiation);
             }
             if (owner >= 0) {
-                bout.write(estimatesShort & 0xFF);
-                bout.write(estimatesShort >> 8);
+                bout.write(popEstimate & 0xFF);
+                bout.write((popEstimate >> 8) | (defensesEstimate << 4));
             }
         }
         if (hasSurfaceMinerals) {
@@ -245,8 +265,26 @@ public class PartialPlanetBlock extends Block {
             res[0] = igbpopByte;
             bout.write(res);
         }
+        if (hasInstallations) {
+            bout.write(excessPop);
+            bout.write(mines & 0xFF);
+            bout.write((factories & 0x0F) << 4 | (mines & 0x0F00) >>8);
+            bout.write((factories & 0x0FF0) >> 4);
+            bout.write(defenses);
+            bout.write(unknownInstallationsByte);
+            bout.write((contributeOnlyLeftoverResourcesToResearch ? 0x80 : 0) | (hasScanner ? 0 : 0x01));
+            bout.write(0);
+        }
         if (hasStarbase) {
-            bout.write(starbaseDesign);
+            if (typeId == BlockType.PARTIAL_PLANET) {
+                bout.write(starbaseDesign);
+            } else {
+                bout.write(starbaseBytes);
+            }
+        }
+        if (hasRoute && typeId == BlockType.PLANET) {
+            bout.write(routeShort & 0xFF);
+            bout.write(routeShort >> 8);
         }
         if (turn >= 0) {
             bout.write(turn & 0xFF);
@@ -257,7 +295,7 @@ public class PartialPlanetBlock extends Block {
         setData(bytes, bytes.length);
         encrypted = false;
 	}
-	
+	    
     private int getContentLength() {
         return 1 + byteLengthForInt(ironium) + byteLengthForInt(boranium) + byteLengthForInt(germanium)
                 + byteLengthForInt(population);
@@ -268,6 +306,32 @@ public class PartialPlanetBlock extends Block {
         if (n < 256) return 1;
         if (n < 65536) return 2;
         return 4;
+    }
+    
+    public static boolean isCompatible(PartialPlanetBlock first, PartialPlanetBlock second) {
+        if (first == null || second == null) return true;
+        if (first.owner != second.owner) return false;
+        if (first.isHomeworld != second.isHomeworld) return false;
+        if (first.hasStarbase && second.hasStarbase && (first.starbaseDesign != second.starbaseDesign)) return false;
+        if (first.hasEnvironmentInfo && second.hasEnvironmentInfo) {
+            if (first.ironiumConc != second.ironiumConc) return false;
+            if (first.boraniumConc != second.boraniumConc) return false;
+            if (first.germaniumConc != second.germaniumConc) return false;
+            if (first.gravity != second.gravity) return false;
+            if (first.temperature != second.temperature) return false;
+            if (first.radiation != second.radiation) return false;
+            if (first.isTerraformed != second.isTerraformed) return false;
+            if (first.isTerraformed) {
+                if (first.origGravity != second.origGravity) return false;
+                if (first.origTemperature != second.origTemperature) return false;
+                if (first.origRadiation != second.origRadiation) return false;
+            }
+            if (first.owner >= 0) {
+                if (first.popEstimate != second.popEstimate) return false;
+                if (first.defensesEstimate != second.defensesEstimate) return false;
+            }
+        }
+        return true;
     }
 
 }
