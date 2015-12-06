@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -327,7 +326,7 @@ public class HFileMerger {
                     if (block.typeId != BlockType.FILE_HEADER) continue;
                     FileHeaderBlock headerBlock = (FileHeaderBlock)block;
                     String filename = entry.getKey();
-                    System.out.println(filename + ": " + headerBlock.year);
+                    System.out.println(filename + ": " + (2400 + headerBlock.turn));
                 }
             }
         }
@@ -477,31 +476,11 @@ public class HFileMerger {
             this.player = player;
         }
         
-        static boolean isCompatible(DesignBlock block1, DesignBlock block2) {
-            if (block1.isTransferred != block2.isTransferred) return false;
-            if (block1.hullId != block2.hullId) return false;
-            if (block1.pic != block2.pic) return false;
-            if (!block1.isFullDesign && !block2.isFullDesign) {
-                if (block1.mass != block2.mass) return false;
-            }
-            // TODO mass of full designs vs not-full designs
-            if (block1.isFullDesign && block2.isFullDesign) {
-                if (!Arrays.equals(block1.nameBytes, block2.nameBytes)) return false;
-                if (block1.fullBytes.length != block2.fullBytes.length) return false;
-                for (int i = 0; i < block1.fullBytes.length; i++) {
-                    // skip weird counting and other bytes, just consider armor and slots
-                    if (i >= 3 && i <= 12) continue;
-                    if (block1.fullBytes[i] != block2.fullBytes[i]) return false;
-                }
-            }
-            return true;
-        }
-        
         void checkConflict() {
             if (latestInMFile != null) {
                 if (latestInMFile.isFullDesign) return;
                 if (latestFullInMFile != null) {
-                    if (isCompatible(latestInMFile, latestFullInMFile)) {
+                    if (DesignBlock.isCompatible(latestInMFile, latestFullInMFile)) {
                         return;
                     } else {
                         latestFullInMFile = null;
@@ -523,12 +502,12 @@ public class HFileMerger {
                 DesignBlock block = blocks[i];
                 if (block == null) continue;
                 if (mustBeFull && !block.isFullDesign) continue;
-                if (mustBeCompatibleWith != null && !isCompatible(mustBeCompatibleWith, block)) continue;
+                if (mustBeCompatibleWith != null && !DesignBlock.isCompatible(mustBeCompatibleWith, block)) continue;
                 if (first == null) {
                     first = block;
                     firstObserver = i;
                 } else {
-                    if (!isCompatible(first, block)) {
+                    if (!DesignBlock.isCompatible(first, block)) {
                         System.out.println("Warning: design conflict, player " + player + " " + (first.isStarbase ? "starbase" : "ship") + " slot " + first.designNumber + ", observers " + firstObserver + "/" + i);
                     }
                 }
@@ -552,13 +531,13 @@ public class HFileMerger {
             }
             if (bestMaybeNotFull == null) return null;
             if (bestMaybeNotFull.isFullDesign) return bestMaybeNotFull;
-            if (latestFullInMFile != null && isCompatible(bestMaybeNotFull, latestFullInMFile)) {
+            if (latestFullInMFile != null && DesignBlock.isCompatible(bestMaybeNotFull, latestFullInMFile)) {
                 return latestFullInMFile;
-            } else if (latestInHFile[observer] != null && latestInHFile[observer].isFullDesign && isCompatible(bestMaybeNotFull, latestInHFile[observer])) {
+            } else if (latestInHFile[observer] != null && latestInHFile[observer].isFullDesign && DesignBlock.isCompatible(bestMaybeNotFull, latestInHFile[observer])) {
                 return latestInHFile[observer];
             } else {
                 for (DesignBlock block : latestInHFile) {
-                    if (block != null && block.isFullDesign && isCompatible(block, bestMaybeNotFull)) {
+                    if (block != null && block.isFullDesign && DesignBlock.isCompatible(block, bestMaybeNotFull)) {
                         return block;
                     }
                 }

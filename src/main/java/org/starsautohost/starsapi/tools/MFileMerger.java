@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +64,7 @@ public class MFileMerger {
     private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
     private PlayerBlock[] players = new PlayerBlock[16];
     private DesignInfo[][] shipDesigns = new DesignInfo[16][16];
+    private DesignBlock[][] shipDesignBlocks = new DesignBlock[16][16];
     private DesignInfo[][] starbaseDesigns = new DesignInfo[16][10];
     private Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
     private int numPlanets;
@@ -121,6 +121,7 @@ public class MFileMerger {
             for (int designNumber = 0; designNumber < 16; designNumber++) {
                 DesignInfo designInfo = shipDesigns[player][designNumber];
                 if (designInfo != null) {
+                    shipDesignBlocks[player][designNumber] = designInfo.block;
                     players[player].shipDesigns++;
                 }
             }
@@ -165,7 +166,7 @@ public class MFileMerger {
             }
             for (int i = 0; i < 16; i++) {
                 for (FleetInfo fleetInfo : MFileMerger.this.fleets[i].values()) {
-                    PartialFleetBlock fblock = fleetInfo.merge();
+                    PartialFleetBlock fblock = fleetInfo.merge(shipDesignBlocks[i]);
                     fleets.put(fblock.getFleetIdAndOwner(), Collections.<Block>singletonList(fblock));
                 }
             }
@@ -552,12 +553,12 @@ public class MFileMerger {
         }
     }
     
-    private static void copyPartialFleetData(PartialFleetBlock hasMass, PartialFleetBlock needsMass) {
-        needsMass.deltaX = hasMass.deltaX;
-        needsMass.deltaY = hasMass.deltaY;
-        needsMass.warp = hasMass.warp;
-        needsMass.unknownBitsWithWarp = hasMass.unknownBitsWithWarp;
-        needsMass.mass = hasMass.mass;
+    private static void copyPartialFleetData(PartialFleetBlock wasPartial, PartialFleetBlock wasFull) {
+        wasFull.deltaX = wasPartial.deltaX;
+        wasFull.deltaY = wasPartial.deltaY;
+        wasFull.warp = wasPartial.warp;
+        wasFull.unknownBitsWithWarp = wasPartial.unknownBitsWithWarp;
+        wasFull.mass = wasPartial.mass;
     }
     
     private void checkGameIdsAndYearsAndPlayers(Map<String, List<Block>> files) throws Exception {
@@ -628,15 +629,22 @@ public class MFileMerger {
     
     private class FleetInfo {
         PartialFleetBlock best;
+        PartialFleetBlock original;
+        boolean foundMass;
+        boolean foundOtherPartialData;
         byte kind;
         
-        PartialFleetBlock merge() {
+        PartialFleetBlock merge(DesignBlock[] designs) {
+            if (!foundMass) {
+                best.mass = original.calculateMass(designs);
+                foundMass = true;
+            }
             best.encode();
             return best;
         }
         
         public void considerWaypointBlock(WaypointBlock waypointBlock) {
-            if (best == null || best.mass > 0) return;
+            if (best == null || foundOtherPartialData) return;
             if (waypointBlock.warp > 10) {
                 // try to distinguish "gating" from "stopped"
                 best.unknownBitsWithWarp = 0;
@@ -661,20 +669,36 @@ public class MFileMerger {
         void consider(PartialFleetBlock block) throws Exception {
             byte blockKind = block.kindByte;
             if (kind >= blockKind) {
-                if (best.mass == 0 && block.mass > 0) {
+                if (!foundOtherPartialData && blockKind <= PartialFleetBlock.PICK_POCKET_KIND) {
+                    foundOtherPartialData = true;
+                    long formerMass = best.mass;
                     copyPartialFleetData(block, best);
+                    if (best.mass > 0) foundMass = true;
+                    else best.mass = formerMass;
+                } else if (!foundMass && block.mass > 0) {
+                    foundMass = true;
+                    best.mass = block.mass;
                 }
             } else {
                 block = (PartialFleetBlock) Block.copy(block);
+                if (!foundMass && blockKind == PartialFleetBlock.FULL_KIND) {
+                    original = (PartialFleetBlock) Block.copy(block);
+                }
                 if (mineralSharing) {
                     block.convertToPartialFleetWithMinerals();
                 } else {
                     block.convertToPartialFleet();
                 }
-                if (best != null && best.mass > 0 && block.mass == 0) {
+                if (best != null && foundOtherPartialData && blockKind == PartialFleetBlock.FULL_KIND) {
                     copyPartialFleetData(best, block);
-                } else if (block.mass == 0) {
+                } else if (blockKind == PartialFleetBlock.FULL_KIND) {
                     block.unknownBitsWithWarp = 16;
+                }
+                if (blockKind <= PartialFleetBlock.PICK_POCKET_KIND) {
+                    foundOtherPartialData = true;
+                } 
+                if (block.mass > 0) {
+                    foundMass = true;
                 }
                 best = block;
                 kind = blockKind;
@@ -697,34 +721,9 @@ public class MFileMerger {
             }
             return res;
         }
- 
-        static boolean isCompatible(PartialPlanetBlock first, PartialPlanetBlock second) {
-            if (first == null || second == null) return true;
-            if (first.owner != second.owner) return false;
-            if (first.isHomeworld != second.isHomeworld) return false;
-            if (first.hasStarbase && second.hasStarbase && (first.starbaseDesign != second.starbaseDesign)) return false;
-            if (first.hasEnvironmentInfo && second.hasEnvironmentInfo) {
-                if (first.ironiumConc != second.ironiumConc) return false;
-                if (first.boraniumConc != second.boraniumConc) return false;
-                if (first.germaniumConc != second.germaniumConc) return false;
-                if (first.gravity != second.gravity) return false;
-                if (first.temperature != second.temperature) return false;
-                if (first.radiation != second.radiation) return false;
-                if (first.isTerraformed != second.isTerraformed) return false;
-                if (first.isTerraformed) {
-                    if (first.origGravity != second.origGravity) return false;
-                    if (first.origTemperature != second.origTemperature) return false;
-                    if (first.origRadiation != second.origRadiation) return false;
-                }
-                if (first.owner >= 0) {
-                    if (first.estimatesShort != second.estimatesShort) return false;
-                }
-            }
-            return true;
-        }
         
         void checkCompatibility(PartialPlanetBlock block) {
-            if (!isCompatible(block, best) || !isCompatible(block, bestWithStarbase) || !isCompatible(block, bestWithEnvironment)) {
+            if (!PartialPlanetBlock.isCompatible(block, best) || !PartialPlanetBlock.isCompatible(block, bestWithStarbase) || !PartialPlanetBlock.isCompatible(block, bestWithEnvironment)) {
                 System.out.println("Warning: planet conflict, planet " + block.planetNumber);
                 compatibilityIssue = true;
             }
@@ -762,31 +761,11 @@ public class MFileMerger {
             this.player = player;
         }
         
-        static boolean isCompatible(DesignBlock block1, DesignBlock block2) {
-            if (block1.isTransferred != block2.isTransferred) return false;
-            if (block1.hullId != block2.hullId) return false;
-            if (block1.pic != block2.pic) return false;
-            if (!block1.isFullDesign && !block2.isFullDesign) {
-                if (block1.mass != block2.mass) return false;
-            }
-            // TODO mass of full designs vs not-full designs
-            if (block1.isFullDesign && block2.isFullDesign) {
-                if (!Arrays.equals(block1.nameBytes, block2.nameBytes)) return false;
-                if (block1.fullBytes.length != block2.fullBytes.length) return false;
-                for (int i = 0; i < block1.fullBytes.length; i++) {
-                    // skip weird counting and other bytes, just consider armor and slots
-                    if (i >= 3 && i <= 12) continue;
-                    if (block1.fullBytes[i] != block2.fullBytes[i]) return false;
-                }
-            }
-            return true;
-        }
-        
         void consider(DesignBlock block) {
             if (this.block == null) {
                 this.block = block;
             } else {
-                if (!isCompatible(this.block, block)) {
+                if (!DesignBlock.isCompatible(this.block, block)) {
                     compatibilityIssue = true;
                     System.out.println("Warning: design conflict, player " + player + " " + (block.isStarbase ? "starbase" : "ship") + " slot " + block.designNumber);
                 }
