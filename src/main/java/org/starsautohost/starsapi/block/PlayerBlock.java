@@ -1,6 +1,19 @@
 package org.starsautohost.starsapi.block;
 
 public class PlayerBlock extends Block {
+    public static class PRT {
+        public static int HE = 0;
+        public static int SS = 1;
+        public static int WM = 2;
+        public static int CA = 3;
+        public static int IS = 4;
+        public static int SD = 5;
+        public static int PP = 6;
+        public static int IT = 7;
+        public static int AR = 8;
+        public static int JOAT = 9;
+    }
+    
     public int playerNumber; 
     public int shipDesigns;
     public int planets;
@@ -112,5 +125,63 @@ public class PlayerBlock extends Block {
 	    } else {
 	        return playerRelations[player];
 	    }
+	}
+	
+	public void makeBeefyFullData(int prt, boolean nrse) {
+        boolean hasEnvironmentInfo = hasEnvironmentInfoOnly();
+	    fullDataFlag = true;
+	    if (fullDataBytes == null) fullDataBytes = new byte[0x68];
+	    if (!hasEnvironmentInfo) {
+	        for (int i = 8; i < 17; i++) {
+	            fullDataBytes[i] = (byte)0xFF; //tri-immune
+	        }
+	    }
+        fullDataBytes[17] = 3; // growth rate, this is the point mine...
+        for (int i = 18; i < 24; i++) {
+            fullDataBytes[i] = 26; // tech
+        }
+        fullDataBytes[54] = 7; // pop efficiency
+        if (prt == PRT.AR) {
+            fullDataBytes[55] = 10;
+            fullDataBytes[56] = 10;
+            fullDataBytes[57] = 10;
+            fullDataBytes[58] = 10;
+            fullDataBytes[59] = 5;
+            fullDataBytes[60] = 10;
+        } else {
+            fullDataBytes[55] = 15; // factories
+            fullDataBytes[56] = 5;
+            fullDataBytes[57] = 25;
+            fullDataBytes[58] = 25; // mines
+            fullDataBytes[59] = 2;
+            fullDataBytes[60] = 25;
+        }
+        // #61 is "spend leftover points on"
+        fullDataBytes[62] = 0; // expensive tech
+        fullDataBytes[63] = 0;
+        fullDataBytes[64] = 0;
+        fullDataBytes[65] = 0;
+        fullDataBytes[66] = 0;
+        fullDataBytes[67] = 0; // end of tech
+        fullDataBytes[68] = (byte)prt;
+        // #69 is always 0...
+        fullDataBytes[70] = nrse ? (byte)141 : 13; // lrts (IFE, ISB, ARM; make this 141 with NRSE)
+        fullDataBytes[71] = 32; // lrts (RS)
+        fullDataBytes[73] = (byte)128; // G-box checked; +32 is tech-starts-with-3
+        fullDataBytes[74] = (byte)255; // all MT items
+        fullDataBytes[75] = 15; // all MT items
+	}
+
+	public static PlayerBlock createUnknownRacePlayerBlock(int playerNumber) {
+	    // does it need a distinct logo? homeworld?
+	    PlayerBlock block = new PlayerBlock();
+	    block.playerNumber = playerNumber;
+	    block.makeBeefyFullData(PRT.JOAT, false);
+	    if (playerNumber < 10) {
+	        block.nameBytes = new byte[] { 2, (byte)191, (byte)(203 + playerNumber), 2, (byte)191, (byte)(203 + playerNumber) };
+	    } else {
+            block.nameBytes = new byte[] { 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10), 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10) };
+	    }
+	    return block;
 	}
 }

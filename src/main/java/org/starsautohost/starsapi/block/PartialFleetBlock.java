@@ -47,6 +47,31 @@ public class PartialFleetBlock extends Block {
 	    population = 0;
 	    // unknownBitsWithWarp = 16;
 	}
+	
+    public static FleetBlock convertToFleetBlockForHstFile(PartialFleetBlock block, DesignBlock[] designs) throws Exception {
+        FleetBlock res;
+        if (block.typeId == BlockType.FLEET) {
+            res = (FleetBlock)block;
+        } else {
+            block.typeId = BlockType.FLEET;
+            block.waypointCount = 1; 
+            if (block.kindByte != FULL_KIND) {
+                block.kindByte = FULL_KIND;
+                block.fuel = 0;
+                for (int i = 0; i < 16; i++) {
+                    int count = block.shipCount[i];
+                    if (count > 0) {
+                        block.fuel += designs[i].fuelCapacity * count;
+                    }
+                }
+            }
+            block.encode();
+            res = new FleetBlock();
+            res.setDecryptedData(block.getDecryptedData(), block.size);
+            res.decode();
+        }
+        return res;
+    }
 
 	@Override
 	public void decode() throws Exception {

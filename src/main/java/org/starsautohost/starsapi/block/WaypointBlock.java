@@ -37,4 +37,18 @@ public class WaypointBlock extends Block {
         encrypted = false;
 	}
 
+	public static WaypointBlock waypointZeroForFleet(FleetBlock fleet) {
+	    WaypointBlock res = new WaypointBlock();
+	    res.x = fleet.x;
+	    res.y = fleet.y;
+	    res.positionObject = fleet.positionObjectId;
+	    if (res.positionObject == 0x0FFFF) {
+	        res.positionObject = 0;
+	        res.positionObjectType = 20;
+	    } else {
+	        res.positionObjectType = 17;
+	    }
+	    res.encode();
+	    return res;
+	}
 }

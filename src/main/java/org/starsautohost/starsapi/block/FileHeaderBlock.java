@@ -12,19 +12,19 @@ import org.starsautohost.starsapi.Util;
 public class FileHeaderBlock extends Block {
 	
 	// Header data
-	public byte[] magicNumberData;
-	public String magicNumberString;
+	public byte[] magicNumberData = new byte[] { 74, 51, 74, 51 } ;
+	public String magicNumberString = "J3J3";
 	
 	public long gameId;
-	public int versionMajor;
-	public int versionMinor;
-	public int versionIncrement;
+	public int versionData = 10848; // 2.6JRC4
+	public int versionMajor = 2;
+	public int versionMinor = 83;
+	public int versionIncrement = 0;
 	public int turn;
-	public int year;
 	public int playerNumber;  // zero-indexed
-	public int encryptionSalt;
+	public int encryptionSalt = 8; // just a number seen in a real file
 	public int fileType;
-	
+	public byte unknownBits;
 	public boolean turnSubmitted;
 	public boolean hostUsing;
 	public boolean multipleTurns;
@@ -57,14 +57,13 @@ public class FileHeaderBlock extends Block {
 		gameId = Util.read32(data, 4);
 		
 		// Version data block is two bytes (swapped)
-		int versionData = Util.read16(data, 8);
+		versionData = Util.read16(data, 8);
 		versionMajor = versionData >> 12;         // First 4 bits
 		versionMinor = (versionData >> 5) & 0x7F; // Middle 7 bits
 		versionIncrement = versionData & 0x1F;    // Last 5 bits
 		
 		// Turn is next two bytes (swapped)
 		turn = Util.read16(data, 10);
-		year = 2400 + turn;
 		
 		// Player data next, 2 bytes swapped
 		int playerData = Util.read16(data, 12);
@@ -78,6 +77,7 @@ public class FileHeaderBlock extends Block {
 		//   UUU43210
 		// Where 'U' is unused. and 43210 correspond to the bit shifts below
 		int flags = Util.read8(data[15]);
+		unknownBits = (byte)((flags >> 5) & 0x07);
 		turnSubmitted = (flags & 1) > 0;
 		hostUsing =     (flags & (1 << 1)) > 0;
 		multipleTurns = (flags & (1 << 2)) > 0;
@@ -87,10 +87,57 @@ public class FileHeaderBlock extends Block {
 
 
 	@Override
-	public void encode() throws Exception {
-		
+	public void encode() {
+		byte[] data = new byte[16];
+		System.arraycopy(magicNumberData, 0, data, 0, 4);
+		Util.write32(data, 4, gameId);
+		Util.write16(data, 8, versionData);
+		Util.write16(data, 10, turn);
+		Util.write16(data, 12, encryptionSalt << 5 | (playerNumber & 0x1F));
+		data[14] = (byte)fileType;
+		data[15] = (byte)(unknownBits << 5);
+		if (turnSubmitted) data[15] |= 1;
+		if (hostUsing) data[15] |= 2;
+		if (multipleTurns) data[15] |= 4;
+		if (gameOver) data[15] |= 8;
+		if (shareware) data[15] |= 16;
+        setDecryptedData(data, data.length);
+        setData(data, data.length);
+        encrypted = false;
 	}
-	
+
+	public static FileHeaderBlock headerForHstFile(long gameId, int turn, byte unknownBits) {
+	    FileHeaderBlock res = new FileHeaderBlock();
+	    res.gameId = gameId;
+	    res.turn = turn;
+	    res.unknownBits = unknownBits;
+	    res.playerNumber = 31;
+	    res.fileType = 2;
+	    res.encode();
+	    return res;
+	}
+
+	public static FileHeaderBlock headerForMFile(long gameId, int turn, byte unknownBits, int playerNumber) {
+	    FileHeaderBlock res = new FileHeaderBlock();
+	    res.gameId = gameId;
+	    res.turn = turn;
+        res.unknownBits = unknownBits;
+	    res.playerNumber = playerNumber;
+	    res.fileType = 3;
+	    res.encode();
+	    return res;
+	}
+
+	public static FileHeaderBlock headerForHFile(long gameId, int turn, byte unknownBits, int playerNumber) {
+	    FileHeaderBlock res = new FileHeaderBlock();
+	    res.gameId = gameId;
+	    res.turn = turn;
+        res.unknownBits = unknownBits;
+	    res.playerNumber = playerNumber;
+	    res.fileType = 4;
+	    res.encode();
+	    return res;
+	}
 
 	@Override
 	public String toString() {
@@ -102,7 +149,7 @@ public class FileHeaderBlock extends Block {
 		s += "Magic Number String: " + magicNumberString + "\n";
 		s += "Game ID: " + Integer.toHexString((int)gameId) + "\n";
 		s += "Version: " + versionMajor + "." + versionMinor + "." + versionIncrement + "\n"; 
-		s += "Turn: " + turn + "; Year: " + year + "\n";
+		s += "Turn: " + turn + "; Year: " + (2400 + turn) + "\n";
 		s += "Player Number: " + playerNumber + "; Displayed as: " + (playerNumber + 1) + "\n";
 		s += "Encryption Salt: " + Integer.toHexString(encryptionSalt) + "\n";
 		s += "File Type: " + fileType + "\n";

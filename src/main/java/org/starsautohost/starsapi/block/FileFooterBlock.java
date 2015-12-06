@@ -18,4 +18,16 @@ public class FileFooterBlock extends Block {
 		
 	}
 
+	public static FileFooterBlock zeroFileFooterBlockForHstOrMFile() {
+	    FileFooterBlock res = new FileFooterBlock();
+	    res.setDecryptedData(new byte[] { 0, 0 }, 2);
+	    return res;
+	}
+	
+	public static FileFooterBlock emptyFileFooterBlockForHFile() {
+	    FileFooterBlock res = new FileFooterBlock();
+	    res.setDecryptedData(new byte[0], 0);
+	    return res;
+	}
+
 }

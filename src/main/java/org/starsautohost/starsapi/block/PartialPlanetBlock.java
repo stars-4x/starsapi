@@ -5,6 +5,14 @@ import java.io.ByteArrayOutputStream;
 import org.starsautohost.starsapi.Util;
 
 public class PartialPlanetBlock extends Block {
+    // Guesses about defense estimate to number of defenses mapping, based on which tech level defenses.
+    private static int[] DEFENSES_ESTIMATES = 
+//        {0, 13, 20, 28, 37, 47, 57, 69, 83, 98, 100, 100, 100, 100, 100, 100};
+//        {0,  6, 10, 14, 18, 23, 28, 34, 41, 48, 57, 68, 83, 100, 100, 100}; 
+        {0,  5,  8, 11, 15, 19, 23, 28, 34, 40, 48, 57, 69, 85, 100, 100}; 
+//        {0,  4,  6,  9, 12, 15, 18, 22, 27, 32, 38, 45, 55, 68, 91, 100};
+//        {0,  3,  5,  7,  9, 12, 14, 17, 21, 25, 30, 35, 43, 53, 71, 100};
+    
     public int planetNumber;
     public int owner; // -1 for no owner
     public boolean isHomeworld;
@@ -208,6 +216,99 @@ public class PartialPlanetBlock extends Block {
         this.encode();
     }
     
+    public static PlanetBlock convertToPlanetBlockForHstFile(PartialPlanetBlock block) throws Exception {
+        PlanetBlock res;
+        if (block.typeId == BlockType.PLANET) {
+            res = (PlanetBlock)block;
+        } else {
+            block.typeId = BlockType.PLANET;
+            block.starbaseBytes = new byte[] { (byte)block.starbaseDesign, 0, 0, 0 };
+            block.hasRoute = false;
+            block.encode();
+            res = new PlanetBlock();
+            res.setDecryptedData(block.getDecryptedData(), block.size);
+            res.getDecryptedData()[2] |= 4;
+            res.decode();
+        }
+        // if we can see minerals and there are none, don't create them
+        boolean couldSeeEnvironment = block.canSeeEnvironment();
+        boolean hadMinerals = block.isInUseOrRobberBaron || block.hasSurfaceMinerals;
+        boolean hadInstallations = block.hasInstallations;
+        if (!hadMinerals && block.owner >= 0) {
+            res.hasSurfaceMinerals = true;
+        }
+        if (!hadInstallations && block.owner >= 0) {
+            if (couldSeeEnvironment && block.popEstimate == 0) {
+                // it's AR; may have limited installations data, but may have none
+            } else {
+                // even if not AR a planet may have no installations, if it was
+                // just colonized
+                res.hasInstallations = true;
+            }
+        }
+        res.isInUseOrRobberBaron = true;
+        res.hasEnvironmentInfo = true;
+        res.bitWhichIsOffForRemoteMiningAndRobberBaron = true;
+        res.weirdBit = false; //?
+        res.turn = -1;
+        if (!couldSeeEnvironment) {
+            res.fractionalMinConcBytes = new byte[] { 0 };
+            res.ironiumConc = 50;
+            res.boraniumConc = 50;
+            res.germaniumConc = 50;
+            res.gravity = 50;
+            res.temperature = 50;
+            res.radiation = 50;
+            res.defensesEstimate = 15;
+            res.popEstimate = 3300;
+        }
+        if (!hadMinerals && res.hasSurfaceMinerals) {
+            res.ironium = 50000;
+            res.boranium = 50000;
+            res.germanium = 50000;
+            if (res.population == 0 && res.owner >= 0) {
+                if (couldSeeEnvironment && res.popEstimate > 0) {
+                    res.population = 4 * res.popEstimate;
+                } else if (couldSeeEnvironment && res.popEstimate == 0) {
+                    // being lazy about checking the starbase hull
+                    res.population = 30000;
+                } else {
+                    // being lazy about checking the prt of the owner
+                    res.population = 13200;
+                }
+            }
+        }
+        if (!hadInstallations && res.hasInstallations) {
+            res.mines = 3300;
+            res.factories = 3300;
+            if (couldSeeEnvironment) {
+                res.defenses = DEFENSES_ESTIMATES[res.defensesEstimate];
+            } else {
+                res.defenses = 100;
+            }
+            res.hasScanner = true;
+        }
+        res.encode();
+        return res;
+    }
+    
+    public static PlanetBlock createEmptyPlanetForHstFile(int planetNumber) throws Exception {
+        PlanetBlock res = new PlanetBlock();
+        res.planetNumber = planetNumber;
+        res.owner = -1;
+        res.isInUseOrRobberBaron = true;
+        res.hasEnvironmentInfo = true;
+        res.bitWhichIsOffForRemoteMiningAndRobberBaron = true;
+        res.ironiumConc = 100;
+        res.boraniumConc = 100;
+        res.germaniumConc = 100;
+        res.gravity = 50;
+        res.temperature = 50;
+        res.radiation = 50;
+        res.encode();
+        return res;
+    }
+
 	@Override
 	public void encode() throws Exception {
 	    ByteArrayOutputStream bout = new ByteArrayOutputStream();

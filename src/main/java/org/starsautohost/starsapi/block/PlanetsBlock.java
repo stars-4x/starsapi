@@ -47,5 +47,12 @@ public class PlanetsBlock extends Block {
 		
 		return s;
 	}
+	
+	public int getNumPlayers() {
+	    return decryptedData[8];
+	}
 
+	public int getNumPlanets() {
+	    return Util.read16(decryptedData, 10);
+	}
 }

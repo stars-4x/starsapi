@@ -18,4 +18,10 @@ public class MessagesFilterBlock extends Block {
 		
 	}
 
+	public static MessagesFilterBlock newEmptyMessagesFilterBlock() {
+	    MessagesFilterBlock block = new MessagesFilterBlock();
+	    block.setDecryptedData(new byte[49], 49);
+	    return block;
+	}
+	
 }
