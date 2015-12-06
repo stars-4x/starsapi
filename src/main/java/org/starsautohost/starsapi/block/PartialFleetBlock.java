@@ -7,15 +7,20 @@ public class PartialFleetBlock extends Block {
     
     public int fleetNumber;
     public int owner;
-    public byte byte2, byte3, byte5, byte6, byte7;
+    public byte byte2, byte3, byte5;
     public byte kindByte; // 3 for most partial, 4 for robber baron, 7 for full
+    public int positionObjectId;
     public int x, y;
     public int shipTypes;
     public int[] shipCount = new int[16];
     public long ironium, boranium, germanium, population, fuel;
-    public byte[] fullFleetBytes = new byte[0];
     public int deltaX, deltaY, unknownBitsWithWarp, warp; // partial fleet data
     public long mass; // partial fleet data
+    // follows is full fleet data
+    public int damagedShipTypes;
+    public int[] damagedShipInfo = new int[16];
+    public int battlePlan;
+    public int waypointCount;
     
 	public PartialFleetBlock() {
 		typeId = BlockType.PARTIAL_FLEET;
@@ -33,7 +38,6 @@ public class PartialFleetBlock extends Block {
 	    germanium = 0;
 	    population = 0;
 	    fuel = 0;
-	    fullFleetBytes = new byte[0];
 	    // unknownBitsWithWarp = 16;
 	}
 
@@ -41,7 +45,6 @@ public class PartialFleetBlock extends Block {
 	    typeId = BlockType.PARTIAL_FLEET;
 	    if (kindByte == FULL_KIND) kindByte = PICK_POCKET_KIND;
 	    population = 0;
-	    fullFleetBytes = new byte[0];
 	    // unknownBitsWithWarp = 16;
 	}
 
@@ -61,8 +64,7 @@ public class PartialFleetBlock extends Block {
         if ((byte5 & 8) == 0) {
             shipCountTwoBytes = true;
         }
-        byte6 = decryptedData[6];
-        byte7 = decryptedData[7];
+        positionObjectId = Util.read16(decryptedData, 6);
 	    x = Util.read16(decryptedData, 8);
         y = Util.read16(decryptedData, 10);
         shipTypes = Util.read16(decryptedData, 12);
@@ -105,8 +107,18 @@ public class PartialFleetBlock extends Block {
             index += fuelLength;
         }
         if (kindByte == FULL_KIND) {
-            fullFleetBytes = new byte[size - index];
-            System.arraycopy(decryptedData, index, fullFleetBytes, 0, size - index);
+            damagedShipTypes = Util.read16(decryptedData, index);
+            index += 2;
+            mask = 1;
+            for (int bit = 0; bit < 16; bit++) {
+                if ((damagedShipTypes & mask) != 0) {
+                    damagedShipInfo[bit] = Util.read16(decryptedData, index);
+                    index += 2;
+                }
+                mask <<= 1;
+            }
+            battlePlan = Util.read8(decryptedData[index++]);
+            waypointCount = Util.read8(decryptedData[index++]);
         } else {
             deltaX = Util.read8(decryptedData[index++]);
             deltaY = Util.read8(decryptedData[index++]);
@@ -119,9 +131,9 @@ public class PartialFleetBlock extends Block {
             index++;
             mass = Util.read32(decryptedData, index);
             index += 4;
-            if (index != size) {
-                throw new Exception("Unexpected trailing data in partial fleet: " + this);
-            }
+        }
+        if (index != size) {
+            throw new Exception("Unexpected trailing data in fleet: " + this);
         }
 	}
 
@@ -146,8 +158,18 @@ public class PartialFleetBlock extends Block {
         if (kindByte == PICK_POCKET_KIND || kindByte == FULL_KIND) {
             len += getContentLength();
         }
-	    if (kindByte == FULL_KIND) len += fullFleetBytes.length;
-	    else len += 8;
+	    if (kindByte == FULL_KIND) {
+	        len += 4;
+	        mask = 1;
+	        for (int bit = 0; bit < 16; bit++) {
+	            if ((damagedShipTypes & mask) != 0) {
+	                len += 2;
+	            }
+	            mask <<= 1;
+	        }
+	    } else {
+	        len += 8;
+	    }
 	    byte[] res = new byte[len];
 	    res[0] = (byte)(fleetNumber & 0xFF);
 	    res[1] = (byte)((owner << 1) + ((fleetNumber & 0x0100) >> 8));
@@ -155,8 +177,7 @@ public class PartialFleetBlock extends Block {
 	    res[3] = byte3;
 	    res[4] = kindByte;
 	    res[5] = byte5;
-	    res[6] = byte6;
-	    res[7] = byte7;
+        Util.write16(res, 6, positionObjectId);
 	    Util.write16(res, 8, x);
         Util.write16(res, 10, y);
         Util.write16(res, 12, shipTypes);
@@ -197,8 +218,18 @@ public class PartialFleetBlock extends Block {
             res[contentsLengthIndex + 1] = (byte)fuelLength;
         }
         if (kindByte == FULL_KIND) {
-            System.arraycopy(fullFleetBytes, 0, res, index, fullFleetBytes.length);
-            index += fullFleetBytes.length;
+            Util.write16(res, index, damagedShipTypes);
+            index += 2;
+            mask = 1;
+            for (int bit = 0; bit < 16; bit++) {
+                if ((damagedShipTypes & mask) != 0) {
+                    Util.write16(res, index, damagedShipInfo[bit]);
+                    index += 2;
+                }
+                mask <<= 1;
+            }
+            res[index++] = (byte)battlePlan;
+            res[index++] = (byte)waypointCount;
         } else {
             res[index++] = (byte)deltaX;
             res[index++] = (byte)deltaY;
@@ -223,6 +254,17 @@ public class PartialFleetBlock extends Block {
 	    if (n < 256) return 1;
 	    if (n < 65536) return 2;
 	    return 4;
+	}
+	
+	public long calculateMass(DesignBlock[] designs) {
+	    if (kindByte != FULL_KIND) return mass;
+	    long res = 0;
+	    for (int i = 0; i < 16; i++) {
+	        int count = shipCount[i];
+	        if (count > 0) res += count * designs[i].mass;
+	    }
+	    res += ironium + boranium + germanium + population;
+	    return res;
 	}
 
 }
