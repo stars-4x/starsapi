@@ -24,9 +24,21 @@ public class ObjectBlock extends Block {
 	    res += type << 13;
 	    return res;
 	}
-	
+
+	public boolean isMinefield() {
+	    return type == 0;
+	}
+
+	public boolean isPacketOrSalvage() {
+	    return type == 1;
+	}
+
 	public boolean isWormhole() {
 	    return type == 2;
+	}
+	
+	public boolean isMT() {
+	    return type == 3;
 	}
 	
 	public boolean isWormholeBeenThrough(int playerMask) {
@@ -35,6 +47,25 @@ public class ObjectBlock extends Block {
 
 	public void setWormholeBeenThrough(int playerMask) {
 	    Util.write16(decryptedData, 10, Util.read16(decryptedData, 10) | playerMask);
+	}
+
+	public void setWormholeVisible(int playerMask) {
+	    Util.write16(decryptedData, 8, Util.read16(decryptedData, 8) | playerMask);
+	}
+
+	public void setMinefieldVisible(int playerMask) {
+	    Util.write16(decryptedData, 14, Util.read16(decryptedData, 14) | playerMask);
+	}
+
+	// 0 standard
+	// 1 heavy
+	// 2 speed bump
+	public int getMinefieldType() {
+	    return Util.read8(decryptedData[12]);
+	}
+	
+	public boolean isMinefieldDetonating() {
+	    return decryptedData[13] == 1;
 	}
 	
 	@Override
