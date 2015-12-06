@@ -9,9 +9,9 @@ public class PlayerBlock extends Block {
     public int logo;
     public boolean fullDataFlag;
     public byte[] fullDataBytes;
-    public byte[] playerRelationsBytes;
+    public byte[] playerRelations = new byte[0]; // 0 neutral, 1 friend, 2 enemy
     public byte[] nameBytes;
-    public byte byte7;
+    public byte byte7 = 1;
     
 	public PlayerBlock() {
 		typeId = BlockType.PLAYER;
@@ -45,10 +45,10 @@ public class PlayerBlock extends Block {
 	        fullDataBytes = new byte[0x68];
 	        System.arraycopy(decryptedData, 8, fullDataBytes, 0, 0x68);
 	        index = 0x70;
-	        int playerRelationsLength = 1 + decryptedData[index] & 0xFF;
-	        playerRelationsBytes = new byte[playerRelationsLength];
-            System.arraycopy(decryptedData, index, playerRelationsBytes, 0, playerRelationsLength);
-            index += playerRelationsLength;
+	        int playerRelationsLength = decryptedData[index] & 0xFF;
+	        playerRelations = new byte[playerRelationsLength];
+            System.arraycopy(decryptedData, index + 1, playerRelations, 0, playerRelationsLength);
+            index += 1 + playerRelationsLength;
 	    }
 	    int namesStart = index;
 	    int singularNameLength = decryptedData[index++] & 0xFF;
@@ -65,7 +65,7 @@ public class PlayerBlock extends Block {
 	@Override
 	public void encode() throws Exception {
 	    if (fullDataFlag) {
-            byte[] res = new byte[8 + 0x68 + playerRelationsBytes.length + nameBytes.length];
+            byte[] res = new byte[8 + 0x68 + 1 + playerRelations.length + nameBytes.length];
             res[0] = (byte)playerNumber;
             res[1] = (byte)shipDesigns;
             res[2] = (byte)(planets & 0xFF);
@@ -75,8 +75,9 @@ public class PlayerBlock extends Block {
             res[6] = (byte)((logo << 3) + 7);
             res[7] = byte7;
             System.arraycopy(fullDataBytes, 0, res, 8, fullDataBytes.length);
-            System.arraycopy(playerRelationsBytes, 0, res, 0x70, playerRelationsBytes.length);
-            System.arraycopy(nameBytes, 0, res, 0x70 + playerRelationsBytes.length, nameBytes.length);
+            res[0x70] = (byte)playerRelations.length;
+            System.arraycopy(playerRelations, 0, res, 0x71, playerRelations.length);
+            System.arraycopy(nameBytes, 0, res, 0x71 + playerRelations.length, nameBytes.length);
             setDecryptedData(res, res.length);
 	    } else {
 	        byte[] res = new byte[8 + nameBytes.length];
@@ -93,4 +94,23 @@ public class PlayerBlock extends Block {
 	    }
 	}
 
+	// CAs see this
+	public boolean hasEnvironmentInfoOnly() {
+	    if (!fullDataFlag) return false;
+	    for (int i = 0; i < 8; i++) {
+	        if (fullDataBytes[i] != 0) return false;
+	    }
+        for (int i = 17; i < 0x68; i++) {
+            if (fullDataBytes[i] != 0) return false;
+        }
+        return true;
+	}
+	
+	public byte getPlayerRelationsWith(int player) {
+	    if (player >= playerRelations.length) {
+	        return 0;
+	    } else {
+	        return playerRelations[player];
+	    }
+	}
 }
