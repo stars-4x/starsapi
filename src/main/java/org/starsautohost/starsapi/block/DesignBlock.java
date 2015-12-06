@@ -271,6 +271,28 @@ public class DesignBlock extends Block {
 	    }
 	    return false;
 	}
+
+	@Override
+	public String toString() {
+	    StringBuilder sb = new StringBuilder();
+	    sb.append(isStarbase ? "Starbase" : "Ship");
+	    sb.append("Design " + designNumber);
+	    if (isTransferred) sb.append(", Transferred");
+	    sb.append(", Hull " + hullId);
+	    sb.append(", Pic " + pic);
+	    sb.append(", Mass " + mass);
+	    if (isFullDesign) {
+	        sb.append(", Armor " + armor);
+	        sb.append(", Count " + totalRemaining + "/" + totalBuilt);
+	        for (Slot slot : slots) {
+                if (slot.count > 0) {
+                    sb.append("\n");
+                    sb.append(slot);
+                }
+	        }
+	    }
+	    return sb.toString();
+	}
 	
 	public static class Slot {
 	    public int category;

@@ -292,4 +292,18 @@ public class PartialFleetBlock extends Block {
 	    return res;
 	}
 
+	@Override
+	public String toString() {
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("Fleet " + fleetNumber + ", Owner " + owner + ", " + byte2 + "/" + byte3 + "/" + kindByte + "/" + byte5);
+	    sb.append("\nPosObjId " + positionObjectId + ", X " + x + ", Y " + y + ", Contents " + ironium + "/" + boranium + "/" + germanium + "/" + population + "/" + fuel);
+	    sb.append("\nShip Counts " + java.util.Arrays.toString(shipCount));
+	    if (kindByte == FULL_KIND) {
+	        sb.append("\nDamage " + java.util.Arrays.toString(damagedShipInfo));
+	        sb.append(", Battle Plan " + battlePlan + ", Waypoints " + waypointCount);
+	    } else {
+	        sb.append("\nDelta " + deltaX + "/" + deltaY + ", Warp " + warp + "(" + unknownBitsWithWarp + "), Mass " + mass);
+	    }
+	    return sb.toString();
+	}
 }

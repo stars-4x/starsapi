@@ -434,5 +434,36 @@ public class PartialPlanetBlock extends Block {
         }
         return true;
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Planet " + planetNumber + ", Owner " + owner);
+        if (isHomeworld) sb.append(", isHomeworld");
+        if (isInUseOrRobberBaron) sb.append(", isInUseOrRobberBaron");
+        if (hasEnvironmentInfo) sb.append(", hasEnvironmentInfo");
+        if (bitWhichIsOffForRemoteMiningAndRobberBaron) sb.append(", bitWhichIsOffForRemoteMiningAndRobberBaron");
+        if (weirdBit) sb.append(", weirdBit");
+        if (hasRoute) sb.append(", hasRoute");
+        if (hasSurfaceMinerals) sb.append(", hasSurfaceMinerals");
+        if (hasArtifact) sb.append(", hasArtifact");
+        if (hasInstallations) sb.append(", hasInstallations");
+        if (isTerraformed) sb.append(", isTerraformed");
+        if (hasStarbase) sb.append(", hasStarbase");
+        sb.append("\n");
+        sb.append(java.util.Arrays.toString(fractionalMinConcBytes));
+        sb.append(", MinConc: " + ironiumConc + "/" + boraniumConc + "/" + germaniumConc);
+        sb.append(", Hab: " + gravity + "/" + temperature + "/" + radiation);
+        sb.append(", OrigHab: " + origGravity + "/" + origTemperature + "/" + origRadiation);
+        sb.append("\n");
+        sb.append("Estimates: " + (defensesEstimate * 100/16) + ";" + (popEstimate*400));
+        sb.append(", Min: " + ironium + "/" + boranium + "/" + germanium);
+        sb.append(", Pop: " + population + "(00+" + excessPop + ")");
+        sb.append(", Inst: " + mines + "/" + factories + "/" + defenses + "/" + unknownInstallationsByte + "/" + contributeOnlyLeftoverResourcesToResearch + "/" + hasScanner);
+        sb.append(", SB: " + starbaseDesign + "(" + java.util.Arrays.toString(starbaseBytes) + ")");
+        sb.append(", RouteShort: " + routeShort);
+        sb.append(", Turn: " + turn);
+        return sb.toString();
+    }
 
 }
