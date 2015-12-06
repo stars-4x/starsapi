@@ -26,7 +26,15 @@ public class WaypointBlock extends Block {
 
 	@Override
 	public void encode() {
-	    throw new UnsupportedOperationException();
+	    byte[] data = new byte[8];
+	    Util.write16(data, 0, x);
+	    Util.write16(data, 2, y);
+	    Util.write16(data, 4, positionObject);
+	    data[6] = (byte)((warp << 4) | unknownBitsWithWarp);
+	    data[7] = (byte)positionObjectType;
+        setDecryptedData(data, data.length);
+        setData(data, data.length);
+        encrypted = false;
 	}
 
 }
