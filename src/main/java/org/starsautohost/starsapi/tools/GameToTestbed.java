@@ -175,8 +175,7 @@ public class GameToTestbed {
         return res;
     }
     
-    private static class DesignInfo {
-        @SuppressWarnings("unused")
+    private class DesignInfo {
         int player;
         DesignBlock bestResult;
         DesignBlock latestInMFile;
@@ -214,6 +213,11 @@ public class GameToTestbed {
             if (bestResult != null) return bestResult;
             else {
                 bestResult = mergeInternal();
+                // built/remaining is more information than should be revealed
+                if ((playerMask & (1 << player)) == 0) {
+                    bestResult.totalBuilt = 0;
+                    bestResult.totalRemaining = 0;
+                }
                 bestResult.encode();
                 return bestResult;
             }
