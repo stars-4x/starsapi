@@ -267,7 +267,7 @@ public class HFileMerger {
                 designMatrix[player][designBlock.designNumber] = designInfo;
             }
             if (designBlock.isStarbase && !isMFile) {
-                int turn = latestStarbaseYearPlusOne[player][designBlock.designNumber];
+                int turn = latestStarbaseYearPlusOne[player][designBlock.designNumber] - 1;
                 designInfo.consider(designBlock, observer, true, turn);
                 designInfo.consider(designBlock, observer, false, fileTurn);
             } else {
