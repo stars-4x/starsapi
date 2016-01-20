@@ -130,4 +130,69 @@ public class Util {
 		
 		return bytes;
 	}
+	
+	public static char[] hexDigits = "0123456789ABCDEF".toCharArray(); 
+	public static String encodesOneByte = " aehilnorst";
+    public static String encodesB = "ABCDEFGHIJKLMNOP";
+    public static String encodesC = "QRSTUVWXYZ012345";
+    public static String encodesD = "6789bcdfgjkmpquv";
+    public static String encodesE = "wxyz+-,!.?:;'*%$";
+	
+	public static byte[] encodeStringForStarsFile(String s) {
+	    StringBuilder hexChars = new StringBuilder();
+	    for (int i = 0; i < s.length(); i++) {
+	        char ch = s.charAt(i);
+	        if (ch > 255) ch = '?';
+	        int index = encodesOneByte.indexOf(ch);
+	        if (index >= 0) {
+	            hexChars.append(hexDigits[index]);
+	            continue;
+	        }
+	        index = encodesB.indexOf(ch);
+	        if (index >= 0) {
+	            hexChars.append('B');
+                hexChars.append(hexDigits[index]);
+                continue;
+	        }
+            index = encodesC.indexOf(ch);
+            if (index >= 0) {
+                hexChars.append('C');
+                hexChars.append(hexDigits[index]);
+                continue;
+            }
+            index = encodesD.indexOf(ch);
+            if (index >= 0) {
+                hexChars.append('D');
+                hexChars.append(hexDigits[index]);
+                continue;
+            }
+            index = encodesE.indexOf(ch);
+            if (index >= 0) {
+                hexChars.append('E');
+                hexChars.append(hexDigits[index]);
+                continue;
+            }
+            hexChars.append('F');
+            hexChars.append(hexDigits[ch & 0x0F]);
+            hexChars.append(hexDigits[ch & 0xF0]);
+	    }
+	    if (hexChars.length() % 2 != 0) hexChars.append('F');
+	    byte[] res = new byte[1 + hexChars.length()/2];
+	    res[0] = (byte)(hexChars.length()/2);
+	    for (int i = 1; i < res.length; i++) {
+	        char firstChar = hexChars.charAt(2*i - 2);
+	        char secondChar = hexChars.charAt(2*i - 1);
+	        byte b = (byte)((charToNibble(firstChar) << 4) | (charToNibble(secondChar)));
+	        res[i] = b;
+	    }
+	    return res;
+	}
+	
+	public static byte charToNibble(char ch) {
+	    if (ch >= '0' && ch <= '9') return (byte)(ch - '0');
+        if (ch >= 'A' && ch <= 'F') return (byte)(ch - 'A' + 10);
+        if (ch >= 'a' && ch <= 'f') return (byte)(ch - 'a' + 10);
+	    throw new IllegalArgumentException();
+	}
+	
 }

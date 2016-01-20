@@ -172,6 +172,20 @@ public class PlayerBlock extends Block {
         fullDataBytes[75] = 15; // all MT items
 	}
 
+	public void setTech(int energy, int weapons, int propulsion, int construction, int electronics, int biotech) {
+	    fullDataBytes[18] = (byte)energy;
+        fullDataBytes[19] = (byte)weapons;
+        fullDataBytes[20] = (byte)propulsion;
+        fullDataBytes[21] = (byte)construction;
+        fullDataBytes[22] = (byte)electronics;
+        fullDataBytes[23] = (byte)biotech;
+	}
+	
+	public void setMtMask(int mtMask) {
+	    fullDataBytes[74] = (byte)(mtMask >> 8);
+	    fullDataBytes[75] = (byte)(mtMask & 0xFF);
+	}
+	
 	public static PlayerBlock createUnknownRacePlayerBlock(int playerNumber) {
 	    // does it need a distinct logo? homeworld?
 	    PlayerBlock block = new PlayerBlock();

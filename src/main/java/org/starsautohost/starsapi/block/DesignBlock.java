@@ -305,4 +305,41 @@ public class DesignBlock extends Block {
         }
 	}
 
+    public static DesignBlock fromDesignString(boolean isStarbase, int designNumber, boolean isRs, String designString, String name) throws Exception {
+        DesignBlock designBlock = new DesignBlock();
+        designBlock.isFullDesign = true;
+        String[] parts = designString.split(",");
+        byte hull = Items.getHullIdOfUserString(parts[0]);
+        designBlock.isStarbase = isStarbase;
+        designBlock.designNumber = designNumber;
+        designBlock.hullId = hull;
+        designBlock.pic = 4 * hull;
+        if (hull == 29) designBlock.pic = 4*31;  // No idea why these pics are swapped
+        else if (hull == 31) designBlock.pic = 4*29;
+        designBlock.armor = Items.ships[hull].armor;
+        designBlock.slotCount = Items.ships[hull].slotCount;
+        designBlock.slots = new ArrayList<DesignBlock.Slot>();
+        for (int slot = 0; slot < designBlock.slotCount; slot++) {
+            if (parts.length <= slot + 1) {
+                designBlock.slots.add(new Slot());
+                continue;
+            }
+            int slotSize = Items.ships[hull].slotSizes[slot];
+            Slot slotInfo = Items.getSlotOfUserString(parts[slot + 1]);
+            if (slotInfo.count < 0 || slotInfo.count > slotSize) slotInfo.count = slotSize;
+            Integer armor = Items.itemArmors.get((slotInfo.category << 8) | slotInfo.itemId);
+            if (armor != null) {
+                if (isRs && slotInfo.category == Items.TechCategory.Armor.getMask()) {
+                    designBlock.armor += slotInfo.count * (armor/2);
+                } else {
+                    designBlock.armor += slotInfo.count * armor;
+                }
+            }
+            designBlock.slots.add(slotInfo);
+        }
+        designBlock.nameBytes = Util.encodeStringForStarsFile(name);
+        designBlock.encode();
+        return designBlock;
+    }
+
 }

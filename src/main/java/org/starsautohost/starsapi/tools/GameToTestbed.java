@@ -1,10 +1,13 @@
 package org.starsautohost.starsapi.tools;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
 import org.starsautohost.starsapi.block.BattlePlanBlock;
@@ -29,6 +32,7 @@ import org.starsautohost.starsapi.encryption.Decryptor;
 
 public class GameToTestbed {
 
+    private Properties playerInfoProperties;
     private String filenameBase;
     private int playerMask = 0; // which players we have M files for current turn 
     private int gameTurn;
@@ -326,7 +330,21 @@ public class GameToTestbed {
 
     public void run(String[] args) throws Exception {
         String xyFilename = null;
+        String propertiesFilename = null;
+        boolean gettingPropertiesFilename = false;
         for (String filename : args) {
+            if (gettingPropertiesFilename) {
+                propertiesFilename = filename;
+                gettingPropertiesFilename = false;
+                continue;
+            }
+            if ("-p".equals(filename)) {
+                if (propertiesFilename != null) {
+                    throw new Exception("Unexpected repeated -p");
+                }
+                gettingPropertiesFilename = true;
+                continue;
+            }
             List<Block> blocks;
             try {
                 blocks = new Decryptor().readFile(filename);
@@ -345,6 +363,16 @@ public class GameToTestbed {
                     xyFilename = filename;
                 }
             }
+        }
+        if (gettingPropertiesFilename) {
+            System.out.println("-p supplied with no value");
+            return;
+        }
+        if (propertiesFilename != null) {
+            playerInfoProperties = new Properties();
+            FileInputStream in = new FileInputStream(propertiesFilename);
+            playerInfoProperties.load(in);
+            in.close();
         }
         if (xyFilename == null) {
             System.out.println("No XY file given");
@@ -693,6 +721,122 @@ public class GameToTestbed {
 //            playerInfo.partialPlayerBlock.fullDataFlag = false;
             if (playerInfo.battlePlans == null || playerInfo.battlePlans.isEmpty()) {
                 playerInfo.battlePlans = BattlePlanBlock.defaultBattlePlansForPlayer(playerNumber);
+            }
+        }
+        processUserSuppliedProperties();
+    }
+
+    private void processUserSuppliedProperties() throws Exception {
+        if (playerInfoProperties == null) return;
+        for (int i = 0; i < numPlayers; i++) {
+            String prefix = "player." + (i+1) + ".";
+            String raceFile = playerInfoProperties.getProperty(prefix + "raceFile");
+            if (raceFile != null) {
+                List<Block> blocks = new Decryptor().readFile(raceFile);
+                for (Block block : blocks) {
+                    if (block instanceof PlayerBlock) {
+                        PlayerBlock playerBlock = (PlayerBlock)block;
+                        playerBlock.playerNumber = i;
+                        playerBlock.setTech(26, 26, 26, 26, 26, 26);
+                        playerBlock.setMtMask(4095);
+                        playerBlock.planets = players[i].playerBlock.planets;
+                        playerBlock.fleets = players[i].playerBlock.planets;
+                        playerBlock.shipDesigns = players[i].playerBlock.shipDesigns;
+                        playerBlock.starbaseDesigns = players[i].playerBlock.starbaseDesigns;
+                        players[i].playerBlock = playerBlock;
+                        players[i].playerBlock.encode();
+                        break;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < numPlayers; i++) {
+            boolean changed = false;
+            String prefix = "player." + (i+1) + ".";
+            String nrse = playerInfoProperties.getProperty(prefix + "nrse");
+            if (nrse != null) {
+                if (Boolean.parseBoolean(nrse.trim())) {
+                    players[i].playerBlock.fullDataBytes[70] |= 128;
+                } else {
+                    players[i].playerBlock.fullDataBytes[70] &= ~128;
+                }
+                changed = true;
+            }
+            String rs = playerInfoProperties.getProperty(prefix + "rs");
+            if (rs != null) {
+                if (Boolean.parseBoolean(rs.trim())) {
+                    players[i].playerBlock.fullDataBytes[71] |= 32;
+                } else {
+                    players[i].playerBlock.fullDataBytes[71] &= ~32;
+                }
+                changed = true;
+            }
+            String prt = playerInfoProperties.getProperty(prefix + "prt"); 
+            if (prt != null) {
+                prt = prt.trim().toUpperCase(Locale.ENGLISH);
+                byte prtByte = 9;
+                if ("HE".equals(prt)) prtByte = 0;
+                else if ("SS".equals(prt)) prtByte = 1;
+                else if ("WM".equals(prt)) prtByte = 2;
+                else if ("CA".equals(prt)) prtByte = 3;
+                else if ("IS".equals(prt)) prtByte = 4;
+                else if ("SD".equals(prt)) prtByte = 5;
+                else if ("PP".equals(prt)) prtByte = 6;
+                else if ("IT".equals(prt)) prtByte = 7;
+                else if ("AR".equals(prt)) prtByte = 8;
+                else if ("JOAT".equals(prt)) prtByte = 9;
+                players[i].playerBlock.fullDataBytes[68] = prtByte;
+                changed = true;
+            }
+            String tech = playerInfoProperties.getProperty(prefix + "tech");
+            if (tech != null) {
+                String[] techs = tech.split("[^0-9]+");
+                int[] techInts = { 26, 26, 26, 26, 26, 26 };
+                int index = 0;
+                for (String techString : techs) {
+                    if (!techString.isEmpty()) {
+                        techInts[index] = Integer.parseInt(techString);
+                        index++;
+                        if (index == 6) break;
+                    }
+                }
+                players[i].playerBlock.setTech(techInts[0], techInts[1], techInts[2], techInts[3], techInts[4], techInts[5]);
+                changed = true;
+            }
+            String mtMask = playerInfoProperties.getProperty(prefix + "mtMask");
+            if (mtMask != null) {
+                players[i].playerBlock.setMtMask(Integer.parseInt(mtMask.trim()));
+                changed = true;
+            }
+            boolean isRs = (players[i].playerBlock.fullDataBytes[71] & 32) != 0;
+            for (int j = 0; j < 16; j++) {
+                String shipDesign = playerInfoProperties.getProperty(prefix + "ship." + (j+1));
+                if (shipDesign != null) {
+                    String name = playerInfoProperties.getProperty(prefix + "ship." + (j+1) + ".name");
+                    DesignBlock designBlock = DesignBlock.fromDesignString(false, j, isRs, shipDesign, name);
+                    if (players[i].shipDesignBlocks[j] == null) {
+                        players[i].playerBlock.shipDesigns++;
+                        changed = true;
+                    }
+                    players[i].shipDesignBlocks[j] = designBlock;
+                    players[i].fullShipDesignBlocks[j] = designBlock;
+                }
+            }
+            for (int j = 0; j < 10; j++) {
+                String starbaseDesign = playerInfoProperties.getProperty(prefix + "starbase." + (j+1));
+                if (starbaseDesign != null) {
+                    String name = playerInfoProperties.getProperty(prefix + "starbase." + (j+1) + ".name");
+                    DesignBlock designBlock = DesignBlock.fromDesignString(true, j, isRs, starbaseDesign, name);
+                    if (players[i].starbaseDesignBlocks[j] == null) {
+                        players[i].playerBlock.starbaseDesigns++;
+                        changed = true;
+                    }
+                    players[i].starbaseDesignBlocks[j] = designBlock;
+                    players[i].fullStarbaseDesignBlocks[j] = designBlock;
+                }
+            }
+            if (changed) {
+                players[i].playerBlock.encode();
             }
         }
     }

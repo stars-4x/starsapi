@@ -1,0 +1,232 @@
+Ship and Starbase slot IDs by m.a@stars - 14 February 2009
+
+From the Possible new utility for creating testbeds (Stars! Host Creator) thread at HWF
+
+Here they are, in all their ASCII glory.
+I drew the slots as 2x2 boxes to better align them.
+You'll notice that I start from 0 instead of 1, and that # means cargo space.
+
+   0 0 # # 2 2 1 1
+   0 0 # # 2 2 1 1	Small Freighter
+
+0 0 # # # # 2 2 1 1
+0 0 # # # # 2 2 1 1	Medium Freighter
+
+    # # # # 1 1
+0 0 # # # # 1 1
+0 0 # # # # 2 2
+    # # # # 2 2		Large Freighter
+
+    # # # # # # 1 1
+    # # # # # # 1 1
+0 0 # # # # # # 2 2
+0 0 # # # # # # 2 2
+    # # # # # # 3 3
+    # # # # # # 3 3	Super Freighter
+
+     0 0 2 2 1 1
+     0 0 2 2 1 1	Scout
+
+   0 0 3 3 2 2 1 1
+   0 0 3 3 2 2 1 1	Frigate
+
+           1 1
+       5 5 1 1
+       5 5
+     0 0 4 4 3 3
+     0 0 4 4 3 3
+       6 6
+       6 6 2 2
+           2 2		Destroyer
+
+           3 3
+       1 1 3 3
+   0 0 1 1 6 6 5 5
+   0 0 2 2 6 6 5 5
+       2 2 4 4
+           4 4		Cruiser
+
+           3 3
+       1 1 3 3
+   0 0 1 1 6 6 5 5
+   0 0 2 2 6 6 5 5
+       2 2 4 4
+           4 4		Battle Cruiser
+
+    5 5
+    5 5 3 3
+    9 9 3 3 2 2
+0 0 9 9 8 8 2 2 1 1
+0 0 a a 8 8 7 7 1 1
+    a a 4 4 7 7
+    6 6 4 4
+    6 6			Battleship
+
+    3 3
+1 1 3 3 7 7
+1 1 5 5 7 7 a a
+0 0 5 5 9 9 a a c c
+0 0 6 6 9 9 b b c c
+2 2 6 6 8 8 b b
+2 2 4 4 8 8
+    4 4			Dreadnought
+
+           3 3
+           3 3 1 1
+   0 0 # # # # 1 1
+   0 0 # # # # 2 2
+           4 4 2 2
+           4 4		Privateer
+
+     7 7 4 4
+     7 7 4 4 6 6
+       # # # 6 6
+   0 0 # # # 1 1 3 3
+   0 0 # # # 1 1 3 3
+       # # # 2 2
+     8 8 5 5 2 2
+     8 8 5 5		Rogue
+
+      1 1 3 3
+      1 1 3 3
+    # # # # 5 5
+0 0 # # # # 5 5 7 7
+0 0 # # # # 6 6 7 7
+    # # # # 6 6
+      2 2 4 4
+      2 2 4 4		Galleon
+
+     0 0 # # 1 1
+     0 0 # # 1 1	Mini-Colony Ship
+
+     0 0 # # 1 1
+     0 0 # # 1 1	Colony Ship
+
+       0 0 1 1
+       0 0 1 1		Mini Bomber
+
+   0 0 1 1 2 2 3 3
+   0 0 1 1 2 2 3 3	B-17 Bomber
+
+         1 1 3 3
+     0 0 1 1 3 3
+     0 0 2 2 4 4
+         2 2 4 4	Stealth Bomber
+
+       1 1
+       1 1 3 3
+   0 0 6 6 3 3 5 5
+   0 0 6 6 4 4 5 5
+       2 2 4 4
+       2 2		B-52 Bomber
+
+       0 0 1 1
+       0 0 1 1		Midget Miner
+
+         2 2
+     0 0 2 2 1 1
+     0 0 3 3 1 1
+         3 3		Mini-Miner
+
+       2 2 3 3
+   0 0 2 2 3 3 1 1
+   0 0 4 4 5 5 1 1
+       4 4 5 5		Miner
+
+       2 2 3 3
+   0 0 2 2 3 3 1 1
+   0 0 4 4 5 5 1 1
+       4 4 5 5		Maxi-Miner
+
+       2 2 3 3
+   0 0 2 2 3 3 1 1
+   0 0 4 4 5 5 1 1
+       4 4 5 5		Ultra-Miner
+
+       0 0 1 1
+       0 0 1 1		Fuel Transport
+
+     0 0 1 1 2 2
+     0 0 1 1 2 2	Super-Fuel Xport
+
+         1 1
+     0 0 1 1 3 3
+     0 0 2 2 3 3
+         2 2		Mini Mine Layer
+
+       1 1     4 4
+   0 0 1 1 3 3 4 4
+   0 0 2 2 3 3 5 5
+       2 2     5 5	Super Mine Layer
+
+    3 3
+1 1 3 3 7 7
+1 1 5 5 7 7 a a
+0 0 5 5 9 9 a a c c
+0 0 6 6 9 9 b b c c
+2 2 6 6 8 8 b b
+2 2 4 4 8 8
+    4 4			Nubian
+
+    5 5
+    5 5 # # 2 2
+0 0 1 1 # # 2 2 4 4
+0 0 1 1 # # 3 3 4 4
+    6 6 # # 3 3
+    6 6			Mini Morph
+
+    5 5
+    5 5 # # 2 2
+0 0 1 1 # # 2 2 4 4
+0 0 1 1 # # 3 3 4 4
+    6 6 # # 3 3
+    6 6			Meta Morph
+
+         1 1
+         1 1
+     4 4 0 0 2 2
+     4 4 0 0 2 2
+         3 3
+         3 3		Orbital Fort
+
+         1 1
+     0 0 1 1 5 5
+     0 0     5 5
+   2 2   # #   3 3
+   2 2   # #   3 3
+     7 7     6 6
+     7 7 4 4 6 6
+         4 4		Space Dock
+
+      2 2 1 1
+      2 2 1 1
+        8 8
+9 9     8 8     b b
+9 9 0 0 # # a a b b
+4 4 0 0 # # a a 3 3
+4 4     6 6     3 3
+        6 6
+      7 7 5 5
+      7 7 5 5		Space Station
+
+      7 7 e e
+      7 7 e e
+    d d 0 0 5 5
+c c d d 0 0 5 5 9 9
+c c 2 2 # # 6 6 9 9
+1 1 2 2 # # 6 6 3 3
+1 1 4 4 a a b b 3 3
+    4 4 a a b b
+      8 8 f f
+      8 8 f f		Ultra Station
+
+    7 7     e e
+    7 7 0 0 e e
+c c d d 0 0 5 5 9 9
+c c d d     5 5 9 9
+  2 2   # #   6 6
+  2 2   # #   6 6
+1 1 4 4     b b 3 3
+1 1 4 4 a a b b 3 3
+    8 8 a a f f
+    8 8     f f		Death Star
