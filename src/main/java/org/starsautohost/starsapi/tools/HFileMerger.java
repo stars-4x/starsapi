@@ -52,12 +52,12 @@ public class HFileMerger {
     
     private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
     private Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
-    private PlayerBlock[] players = new PlayerBlock[16];
+    protected PlayerBlock[] players = new PlayerBlock[16];
     private int[][] fleetCount = new int[16][16];
     private DesignInfo[][] shipDesigns = new DesignInfo[16][16];
     private DesignInfo[][] starbaseDesigns = new DesignInfo[16][10];
     private int numPlanets;
-    private List<PartialPlanetBlock> planetBlocks;
+    protected List<PartialPlanetBlock> planetBlocks;
     
     public void run(String[] args) throws Exception {
         for (String filename : args) {
@@ -84,7 +84,7 @@ public class HFileMerger {
         }
     }
 
-    private void postProcess() {
+    protected void postProcess() {
         numPlanets = planets.size();
         planetBlocks = new ArrayList<PartialPlanetBlock>();
         for (PlanetInfo planetInfo : planets.values()) {
@@ -178,7 +178,7 @@ public class HFileMerger {
         }
     }
     
-    private class FileProcessor {
+    protected class FileProcessor {
         private int observer = -1;
         private int fileTurn = -1;
         private boolean isMFile = false;
