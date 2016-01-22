@@ -1,26 +1,19 @@
 package org.starsautohost.starsapi.tools;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Vector;
-
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
 import org.starsautohost.starsapi.block.Block;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
 import org.starsautohost.starsapi.block.PlayerBlock;
 import org.starsautohost.starsapi.encryption.Decryptor;
+import org.starsautohost.starsapi.tools.GameToTestbed.PlanetInfo;
+import org.starsautohost.starsapi.tools.GameToTestbed.PlayerInfo;
 
 /**
  * 
@@ -46,7 +39,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JButton hw = new JButton("HW");
 	private JTextField search = new JTextField();
 	private JCheckBox names = new JCheckBox("Names",true);
-	private JSlider zoom = new JSlider(25, 600, 100);
+	private JSlider zoomSlider = new JSlider(25, 600, 100);
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
@@ -140,6 +133,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			if (f.getName().toUpperCase().endsWith("HST")) continue;
 			if (f.getName().toUpperCase().startsWith(settings.getGameName()+".M")) mFiles.addElement(f);
 			else if (f.getName().toUpperCase().startsWith(settings.getGameName()+".H")) hFiles.addElement(f);
+			else if (f.getName().toUpperCase().startsWith(settings.getGameName()+".XY")) hFiles.addElement(f);
 		}
 		if (mFiles.size() == 0) throw new Exception("No M-files found matching game name.");
 		if (hFiles.size() == 0) throw new Exception("No H-files found matching game name.");
@@ -154,12 +148,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		JPanel cp = (JPanel)getContentPane();
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
-		JPanel south = createPanel(0,hw,new JLabel("Search: "),search,names,zoom,colorize);
+		JPanel south = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize);
 		search.setPreferredSize(new Dimension(100,-1));
 		cp.add(south,BorderLayout.SOUTH);
 		hw.addActionListener(this);
 		names.addActionListener(this);
-		zoom.addChangeListener(this);
+		zoomSlider.addChangeListener(this);
 		search.addKeyListener(this);
 		colorize.addActionListener(this);
 		setSize(800,600);
@@ -167,6 +161,15 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		setLocation((screen.width-getWidth())/2, (screen.height-getHeight())/2);
 		setVisible(animatorFrame == false);
 		if (animatorFrame) names.setSelected(false);
+		else{
+			setExtendedState(getExtendedState()|JFrame.MAXIMIZED_BOTH);
+			SwingUtilities.invokeLater(new Runnable(){
+				public void run(){
+					search.requestFocusInWindow();
+					universe.zoomToFillGalaxy();
+				}
+			});
+		}
 	}
 	
 	private void parseMapFile(File map) throws Exception{
@@ -187,7 +190,44 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 		in.close();
 	}
+
+	protected class Parser extends GameToTestbed{
+		public Parser(Vector<File> filesIn) throws Exception{
+			String xyFilename = null;
+			for (File f : filesIn){
+				System.out.println("Parsing "+f.getName());
+				List<Block> blocks = new Decryptor().readFile(f.getAbsolutePath());
+				System.out.println(blocks.size()+" blocks to parse");
+				files.put(f.getAbsolutePath(),blocks);
+				if (isProblem(f.getAbsolutePath(), blocks)) throw new Exception("An error occured");
+				if (checkXYFile(blocks)) {
+	                if (xyFilename != null) throw new Exception("Found multiple XY files");
+	                xyFilename = f.getAbsolutePath();
+	            }
+			}
+	        if (xyFilename == null) throw new Exception("No XY file given");
+	        if (!xyFilename.toLowerCase().endsWith(".xy")) throw new Exception("Surprising XY filename without .XY: " + xyFilename);
+	        filenameBase = xyFilename.substring(0, xyFilename.length() - 3);
+	        checkGameIdsAndYearsAndPlayers(files);
+	        for (Map.Entry<String, List<Block>> entry : files.entrySet()) {
+	            List<Block> blocks = entry.getValue();
+	            new FileProcessor().process(blocks);
+	        }
+	        postProcess();
+	        
+			if (settings.playerNr >= 0){ //Not set if called from GalaxyAnimator
+				PlayerBlock player = players[settings.playerNr].playerBlock;
+				if (player != null){
+					for (PlayerInfo pi :players){
+						if (pi == null || pi.playerBlock == null) continue;
+						if (player.getPlayerRelationsWith(pi.playerBlock.playerNumber) == 1) friends.addElement(pi.playerBlock.playerNumber);
+					}
+				}
+			}
+		}
+	}
 	
+	/*
 	protected class Parser extends HFileMerger{
 		public Parser(Vector<File> files) throws Exception{
 			for (File f : files){
@@ -223,6 +263,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			}
 		}
     }
+    */
 	
 	private void calculateColors(){
 		if (animatorFrame){
@@ -253,7 +294,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			enemyColors.addElement(new Color(112,34,34));
 			enemyColors.addElement(new Color(90,34,102));
 			enemyColors.addElement(new Color(230,126,56));
-			for (PlayerBlock pb : p.players){
+			for (PlayerInfo pi : p.players){
+				if (pi == null) continue;
+				PlayerBlock pb = pi.playerBlock;
 				if (pb == null) continue;
 				if (pb.playerNumber == settings.playerNr) continue;
 				if (pb.getPlayerRelationsWith(settings.playerNr) == 1) friends.addElement(pb);
@@ -272,9 +315,19 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	}
 	
 	private PartialPlanetBlock getPlanet(int id, int hwForPlayer){
-		for (PartialPlanetBlock ppb : p.planetBlocks){
-			if (ppb.planetNumber == id) return ppb;
-			if (ppb.isHomeworld && ppb.owner == hwForPlayer) return ppb;
+		PlanetInfo pi = p.planets.get(id);
+		if (pi != null){
+			PartialPlanetBlock ppb = pi.definitive!=null?pi.definitive:pi.best;
+			if (ppb != null) return ppb;
+		}
+		if (hwForPlayer >= 0){
+			for (Integer i : p.planets.keySet()){
+				pi = p.planets.get(i);
+				PartialPlanetBlock ppb = pi.definitive!=null?pi.definitive:pi.best;
+				if (ppb != null){
+					if (ppb.isHomeworld && ppb.owner == hwForPlayer) return ppb;
+				}
+			}
 		}
 		return null;
 	}
@@ -353,7 +406,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				if (colorize.isSelected() || animatorFrame){
 					int yy = 20;
 					g.setFont(g.getFont().deriveFont((float)12));
-					for (PlayerBlock pb : GalaxyViewer.this.p.players){
+					for (PlayerInfo pi : GalaxyViewer.this.p.players){
+						if (pi == null) continue;
+						PlayerBlock pb = pi.playerBlock;
 						if (pb == null) continue;
 						Color col = colors.get(pb.playerNumber);
 						if (animatorFrame && col != null) ; //Ok
@@ -383,6 +438,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 		
 		public void centerOnPoint(Point p) {
+			System.out.println("Trying to center on point "+p);
 			double x = (double)convertX(p.x);
 			double y = (double)convertY(p.y);
 			double w = (double)getWidth();
@@ -397,6 +453,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		public void zoomToFillGalaxy() {
 			double ySize = maxY-1000;
 			zoom = 100.0 * getHeight() / ySize;
+			GalaxyViewer.this.zoomSlider.setValue((int)zoom);
 			Point center = new Point((maxX-1000)/2+1000,(maxY-1000)/2+1000);
 			centerOnPoint(center);
 			repaint();
@@ -411,6 +468,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				Point p = planetCoordinates.get(planet.planetNumber);
 				if (p != null) universe.centerOnPoint(p);
 			}
+			else{
+				System.out.println("Did not find hw for player "+settings.playerNr);
+			}
 		}
 		else if (e.getSource() == names){
 			repaint();
@@ -422,7 +482,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	
 	@Override
 	public void stateChanged(ChangeEvent e) {
-		universe.zoom = zoom.getValue();
+		universe.zoom = zoomSlider.getValue();
 		repaint();
 	}
 	
@@ -438,6 +498,14 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 
 	@Override
 	public void keyTyped(KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_PLUS || e.getKeyChar() == '+'){
+			zoomSlider.setValue(Math.min(600, zoomSlider.getValue()+10));
+			e.consume();
+		}
+		else if (e.getKeyCode() == KeyEvent.VK_MINUS || e.getKeyChar() == '-'){
+			zoomSlider.setValue(Math.max(0, zoomSlider.getValue()-10));
+			e.consume();
+		}
 	}
 	@Override
 	public void keyPressed(KeyEvent e) {

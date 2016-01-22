@@ -33,19 +33,19 @@ import org.starsautohost.starsapi.encryption.Decryptor;
 public class GameToTestbed {
 
     private Properties playerInfoProperties;
-    private String filenameBase;
+    protected String filenameBase;
     private int playerMask = 0; // which players we have M files for current turn 
     private int gameTurn;
     private long gameId;
     private byte unknownHeaderFlagBits; // required to make games work
     private int numPlanets;
     private int numPlayers;
-    private Map<String, List<Block>> files = new HashMap<String, List<Block>>();
-    private PlayerInfo[] players = new PlayerInfo[16];
-    private Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
-    private Map<Integer, ObjectBlock> objects = new TreeMap<Integer, ObjectBlock>();
+    protected Map<String, List<Block>> files = new HashMap<String, List<Block>>();
+    protected PlayerInfo[] players = new PlayerInfo[16];
+    protected Map<Integer, PlanetInfo> planets = new TreeMap<Integer, PlanetInfo>();
+    protected Map<Integer, ObjectBlock> objects = new TreeMap<Integer, ObjectBlock>();
     
-    private static class PlayerInfo {
+    protected static class PlayerInfo {
         PlayerBlock playerBlock;
         DesignInfo[] shipDesigns = new DesignInfo[16];
         Map<Integer, FleetInfo> fleets = new TreeMap<Integer, FleetInfo>();
@@ -63,7 +63,7 @@ public class GameToTestbed {
         int planetCount;
     }
     
-    private class PlanetInfo {
+    protected class PlanetInfo {
         PlanetBlock bestHst;
         PartialPlanetBlock bestM;
         PartialPlanetBlock bestH;
@@ -401,7 +401,7 @@ public class GameToTestbed {
         }
     }
 
-    private static boolean isProblem(String filename, List<Block> blocks) {
+    protected static boolean isProblem(String filename, List<Block> blocks) {
         if (blocks == null || blocks.size() == 0) {
             System.out.println(filename + " does not parse into block list");
             return true;
@@ -464,7 +464,7 @@ public class GameToTestbed {
         return false;
     }
     
-    private boolean checkXYFile(List<Block> blocks) throws Exception {
+    protected boolean checkXYFile(List<Block> blocks) throws Exception {
         FileHeaderBlock headerBlock = (FileHeaderBlock) blocks.get(0);
         if (headerBlock.fileType != 0) return false;
         gameId = headerBlock.gameId;
@@ -480,7 +480,7 @@ public class GameToTestbed {
         return true;
     }
 
-    private void checkGameIdsAndYearsAndPlayers(Map<String, List<Block>> files) throws Exception {
+    protected void checkGameIdsAndYearsAndPlayers(Map<String, List<Block>> files) throws Exception {
         gameTurn = -1;
         int[] latestTurnByPlayer = new int[numPlayers];
         for (int i = 0; i < numPlayers; i++) {
@@ -515,7 +515,7 @@ public class GameToTestbed {
         }
     }
 
-    private class FileProcessor {
+    protected class FileProcessor {
         private int observer = -1;
         private int fileTurn = -1;
         private boolean isMFile = false;
@@ -702,7 +702,7 @@ public class GameToTestbed {
         }
     }
 
-    private void postProcess() throws Exception {
+    protected void postProcess() throws Exception {
         createRacesForMissingPlayers();
         setPlanetCountsAndPrtsFromPlanetsAndMinefields();
         for (int playerNumber = 0; playerNumber < numPlayers; playerNumber++) {
