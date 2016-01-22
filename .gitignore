@@ -3,3 +3,5 @@ galaxyviewer.ini
 galaxyanimator.ini
 .metadata/*
 .recommenders/*
+*.bat
+*.bak
