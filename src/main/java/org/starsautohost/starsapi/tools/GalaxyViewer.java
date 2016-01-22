@@ -3,25 +3,29 @@ package org.starsautohost.starsapi.tools;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
+
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import org.starsautohost.starsapi.block.Block;
+import org.starsautohost.starsapi.block.PartialFleetBlock;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
 import org.starsautohost.starsapi.block.PlayerBlock;
 import org.starsautohost.starsapi.encryption.Decryptor;
+import org.starsautohost.starsapi.tools.GameToTestbed.FleetInfo;
 import org.starsautohost.starsapi.tools.GameToTestbed.PlanetInfo;
 import org.starsautohost.starsapi.tools.GameToTestbed.PlayerInfo;
 
 /**
  * 
- * @author Runar Holen
+ * @author Runar Holen (platon79 on SAH-forums)
  *
  * TODO:
  * -Fleets, more info, etc
- * -Make an animation class displaying progress based on subdirectories (2400,2401,2402 etc)
  * -Finally, make an android app to display galaxy when on the move (with dropbox-integration to get files?)
  */
 public class GalaxyViewer extends JFrame implements ActionListener, ChangeListener, KeyListener{
@@ -30,9 +34,14 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private Parser p;
 	private HashMap<Integer, String> planetNames = new HashMap<Integer, String>();
 	private HashMap<Integer, Point> planetCoordinates = new HashMap<Integer, Point>();
+	private HashMap<Point, Integer> planetNrs = new HashMap<Point, Integer>();
 	private int maxX = 0, maxY = 0;
 	private Settings settings;
 	protected Vector<Integer> friends = new Vector<Integer>();
+	private int bigFleetCounter = -1;
+	private Vector<PlayerInfo> sortedPlayers = new Vector<PlayerInfo>();
+	private HashMap<Point,EnemyFleetInfo> enemyFleetInfo = new HashMap<Point,EnemyFleetInfo>();
+	private HashMap<Point,Integer> totalFleetCount = new HashMap<Point,Integer>();
 	
 	//UI
 	protected RPanel universe = new RPanel();
@@ -42,7 +51,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JSlider zoomSlider = new JSlider(25, 600, 100);
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
+	private JCheckBox showFleets = new JCheckBox("Show fleets",false);
+	private JButton gotoBigFleets = new JButton("Go to big enemy fleets");
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
+	private JLabel info = new JLabel();
 	private boolean animatorFrame;
 	
 	public static void main(String[] args) throws Exception{
@@ -148,7 +160,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		JPanel cp = (JPanel)getContentPane();
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
-		JPanel south = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize);
+		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,gotoBigFleets);
+		JPanel south = new JPanel(); south.setLayout(new BorderLayout());
+		south.add(info,BorderLayout.NORTH);
+		south.add(s,BorderLayout.CENTER);
 		search.setPreferredSize(new Dimension(100,-1));
 		cp.add(south,BorderLayout.SOUTH);
 		hw.addActionListener(this);
@@ -156,11 +171,16 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		zoomSlider.addChangeListener(this);
 		search.addKeyListener(this);
 		colorize.addActionListener(this);
+		showFleets.addActionListener(this);
+		gotoBigFleets.addActionListener(this);
 		setSize(800,600);
 		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		setLocation((screen.width-getWidth())/2, (screen.height-getHeight())/2);
 		setVisible(animatorFrame == false);
-		if (animatorFrame) names.setSelected(false);
+		if (animatorFrame){
+			names.setSelected(false);
+			showFleets.setSelected(false);
+		}
 		else{
 			setExtendedState(getExtendedState()|JFrame.MAXIMIZED_BOTH);
 			SwingUtilities.invokeLater(new Runnable(){
@@ -187,6 +207,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			if (x > maxX) maxX = x;
 			if (y > maxY) maxY = y;
 			planetCoordinates.put(id,new Point(x,y));
+			planetNrs.put(new Point(x,y),id);
 		}
 		in.close();
 	}
@@ -223,9 +244,46 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						if (player.getPlayerRelationsWith(pi.playerBlock.playerNumber) == 1) friends.addElement(pi.playerBlock.playerNumber);
 					}
 				}
+			}		
+			calculateFleetInfo();
+		}
+		private void calculateFleetInfo(){
+			Vector<PlayerInfo> v = new Vector<PlayerInfo>();
+			for (PlayerInfo pi : players){
+				if (pi != null) v.addElement(pi);
+			}
+			sortPlayers(v);
+			sortedPlayers = v;
+			
+			//Count total fleets in each x,y-point
+			for (PlayerInfo pi : v){
+				for (Integer fleetId : pi.fleets.keySet()){
+					FleetInfo fi = pi.fleets.get(fleetId);
+					PartialFleetBlock f = fi.definitive!=null?fi.definitive:fi.bestPartial;
+					Point p = new Point(f.x,f.y);
+					Integer i = totalFleetCount.get(p);
+					if (i == null) i = 0;
+					int thisCount = 0;
+					for (int t = 0; t < f.shipCount.length; t++){
+						thisCount += f.shipCount[t];
+					}
+					i += thisCount;
+					totalFleetCount.put(p,i);
+					if (isEnemy(pi.playerBlock)){ //Info will be merged for each point in space! :-)
+						EnemyFleetInfo info = enemyFleetInfo.get(p);
+						if (info == null){
+							info = new EnemyFleetInfo(p, 0, 0);
+							enemyFleetInfo.put(p,info);
+						}
+						info.shipCount += thisCount;
+						info.totalMass += f.mass;
+					}
+				}
 			}
 		}
 	}
+	
+	
 	
 	/*
 	protected class Parser extends HFileMerger{
@@ -314,6 +372,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
+	public boolean isEnemy(PlayerBlock pb) {
+		return pb.playerNumber != settings.playerNr && friends.contains(pb.playerNumber) == false;
+	}
+
 	private PartialPlanetBlock getPlanet(int id, int hwForPlayer){
 		PlanetInfo pi = p.planets.get(id);
 		if (pi != null){
@@ -362,38 +424,30 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 		
 		@Override
-		public void paint(Graphics g){
-			Graphics2D g2d = (Graphics2D)g;
-			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		public void paint(Graphics gr){
+			Graphics2D g = (Graphics2D)gr;
+			g.setStroke(new BasicStroke(0.1f));
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g.setColor(Color.black);
 			g.fillRect(0, 0, getWidth(), getHeight());
+			double virtualWidth = getWidth() * zoom / 100;
+			double virtualHeight = getHeight() * zoom / 100;
+			int xOffset = (int)(getWidth() - virtualWidth) / 2;
+	        int yOffset = (int)(getHeight() - virtualHeight) / 2;
+	        
 			for (Integer id : planetNames.keySet()){
 				String name = planetNames.get(id);
 				Point p = planetCoordinates.get(id);
 				PartialPlanetBlock planet = getPlanet(id, -2);
 				g.setColor(Color.gray);
 				int rad = 3;
-				if (planet != null){
-					rad = 6;
-					if (animatorFrame){
-						Color col = colors.get(planet.owner);
-						if (col == null) col = Color.gray;
-						g.setColor(col);
-					}
-					else{
-						if (planet.owner == settings.playerNr) g.setColor(Color.green);
-						else if (colorize.isSelected() && colors.get(planet.owner) != null) g.setColor(colors.get(planet.owner));
-						else if (friends.contains(planet.owner)) g.setColor(Color.YELLOW);
-						else if (planet.owner >= 0) g.setColor(Color.red);
-						else rad = 3;
-					}
+				if (planet != null && planet.owner >= 0){
+					rad = 5;
+					Color col = getColor(planet.owner);
+					g.setColor(col);
 				}
 				int x = convertX(p.x);
 				int y = convertY(p.y);
-				double virtualWidth = getWidth() * zoom / 100;
-				double virtualHeight = getHeight() * zoom / 100;
-				int xOffset = (int)(getWidth() - virtualWidth) / 2;
-		        int yOffset = (int)(getHeight() - virtualHeight) / 2;
 				x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 				y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
 		        g.fillOval(x-rad/2, y-rad/2, rad, rad);
@@ -410,12 +464,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						if (pi == null) continue;
 						PlayerBlock pb = pi.playerBlock;
 						if (pb == null) continue;
-						Color col = colors.get(pb.playerNumber);
-						if (animatorFrame && col != null) ; //Ok
-						else if (pb.playerNumber == settings.playerNr) col = Color.green;
-						else if (col == null) col = Color.red;
+						Color col = getColor(pb.playerNumber);
 						g.setColor(col);
-						String n = new String(pb.nameBytes); //Does not work
+						String n = new String(pb.nameBytes); //Does not work. Must be converted.
 						n = "Player "+(pb.playerNumber+1);
 						g.drawString(n,5,yy);
 						//System.out.print(pb.playerNumber+": ");
@@ -428,6 +479,111 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					}
 				}
 			}
+			if (showFleets.isSelected()){
+				g.setFont(g.getFont().deriveFont((float)10));
+				
+				//Then, paint fleets!
+				for (PlayerInfo pi : sortedPlayers){
+					for (Integer fleetId : pi.fleets.keySet()){
+						FleetInfo fi = pi.fleets.get(fleetId);
+						PartialFleetBlock f = fi.definitive!=null?fi.definitive:fi.bestPartial;
+						Point p = new Point(f.x,f.y);
+						Integer i = totalFleetCount.get(p);
+						Color col = getColor(pi.playerBlock.playerNumber);
+						g.setColor(col);
+						int x = convertX(p.x);
+						int y = convertY(p.y);
+						x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
+						y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+						if (planetNrs.get(p) != null){ //Fleet at orbit
+							PartialPlanetBlock planet = getPlanet(planetNrs.get(p), -1);
+							int rad = 10;				
+							if (col.equals(Color.green)) col = Color.white;
+					        g.drawOval(x-rad/2, y-rad/2, rad, rad);
+					        int stringWidth = g.getFontMetrics().stringWidth(""+i);
+							g.drawString(""+i, x-stringWidth/2, y-6);
+						}
+						else{
+							Polygon fleet = getFleetShape(f,x,y);
+							if (fleet != null){
+								g.fillPolygon(fleet);
+								int stringWidth = g.getFontMetrics().stringWidth(""+i);
+								g.drawString(""+i, x-stringWidth/2, y-6);
+							}
+						}
+						
+					}
+				}
+			}
+		}
+		
+		private Polygon getFleetShape(PartialFleetBlock f, int x, int y) {
+			int[] xPoints, yPoints;
+			double dx = (double)(f.deltaX-127);
+			double dy = -(double)(f.deltaY-127);
+			//if (f.deltaX != 0 && f.deltaY != 0) System.out.println(f.deltaX+" "+f.deltaY+" "+dx+" "+dy);
+			if (dy < 0 && Math.abs(dy) / Math.abs(dx) >= 2.0){ //Up
+				xPoints = new int[]{x-4,x,x+4};
+				yPoints = new int[]{y+3,y-3,y+3};
+			}
+			else if (dy > 0 && Math.abs(dy) / Math.abs(dx) >= 2.0){ //Down
+				xPoints = new int[]{x-4,x,x+4};
+				yPoints = new int[]{y-3,y+3,y-3};
+			}
+			else if (dx > 0 && Math.abs(dx) / Math.abs(dy) >= 2.0){ //East
+				xPoints = new int[]{x-3,x+3,x-3};
+				yPoints = new int[]{y-4,y,y+4};
+			}
+			else if (dx < 0 && Math.abs(dx) / Math.abs(dy) >= 2.0){ //West
+				xPoints = new int[]{x+3,x-3,x+3};
+				yPoints = new int[]{y-4,y,y+4};
+			}
+			else if (dx > 0 && dy > 0){ //South-east
+				xPoints = new int[]{x-3,x+3,x+3};
+				yPoints = new int[]{y+3,y-3,y+3};
+			}
+			else if (dx > 0 && dy < 0){ //North-east
+				xPoints = new int[]{x-3,x+3,x+3};
+				yPoints = new int[]{y-3,y-3,y+3};
+			}
+			else if (dx < 0 && dy < 0){ //North-west
+				xPoints = new int[]{x-3,x-3,x+3};
+				yPoints = new int[]{y-3,y+3,y-3};
+			}
+			else if (dx < 0 && dy > 0){ //South-west
+				xPoints = new int[]{x-3,x-3,x+3};
+				yPoints = new int[]{y-3,y+3,y+3};
+			}
+			else{ //Stationary, same as east
+				xPoints = new int[]{x-3,x+3,x-3};
+				yPoints = new int[]{y-4,y,y+4};
+			}
+			Polygon p = new Polygon(xPoints, yPoints, 3);
+			return p;
+		}
+
+		private Color getColor(int playerNumber) {
+			if (playerNumber < 0) return Color.gray;
+			/*
+			if (animatorFrame){
+				Color col = colors.get(planet.owner);
+				if (col == null) col = Color.gray;
+				g.setColor(col);
+			}
+			else{
+				if (planet.owner == settings.playerNr) g.setColor(Color.green);
+				else if (colorize.isSelected() && colors.get(planet.owner) != null) g.setColor(colors.get(planet.owner));
+				else if (friends.contains(planet.owner)) g.setColor(Color.YELLOW);
+				else if (planet.owner >= 0) g.setColor(Color.red);
+				else rad = 3;
+			}
+			*/
+			Color col = colors.get(playerNumber);
+			if ((animatorFrame || colorize.isSelected()) && col != null) ; //Ok
+			else if (playerNumber == settings.playerNr) col = Color.green;
+			else if (friends.contains(playerNumber)) col = Color.yellow;
+			else col = Color.red;
+			return col;
 		}
 
 		private int convertX(int x){
@@ -477,6 +633,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 		else if (e.getSource() == colorize){
 			repaint();
+		}
+		else if (e.getSource() == showFleets){
+			repaint();
+		}
+		else if (e.getSource() == gotoBigFleets){
+			gotoBigFleet();
 		}
 	}
 	
@@ -575,5 +737,64 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			b = x;
 		}
 		return new Color(r, g, b);
+	}
+	
+	/**
+	 * You first, then friends, and then enemies
+	 */
+	private void sortPlayers(Vector<PlayerInfo> v){
+		Collections.sort(v,new Comparator<PlayerInfo>(){
+			@Override
+			public int compare(PlayerInfo o1, PlayerInfo o2) {
+				if (settings.playerNr == -1) return 0;
+				if (o1.playerBlock.playerNumber == settings.playerNr) return -2;
+				if (o2.playerBlock.playerNumber == settings.playerNr) return 2;
+				if (o1.playerBlock.getPlayerRelationsWith(settings.playerNr) == 1) return -1;
+				if (o2.playerBlock.getPlayerRelationsWith(settings.playerNr) == 1) return 1;
+				return 0;
+			}
+		});
+	}
+	
+	private void gotoBigFleet(){
+		if (showFleets.isSelected() == false) info.setText("You must show fleets to use the goto big fleets function");
+		else{
+			Vector<EnemyFleetInfo> v = new Vector<EnemyFleetInfo>();
+			for (Point p : enemyFleetInfo.keySet()){
+				EnemyFleetInfo i = enemyFleetInfo.get(p);
+				v.addElement(i);
+			}
+			Collections.sort(v);
+			if (v.size() == 0) info.setText("No enemy fleets detected.");
+			else{
+				int nr = Math.min(10,v.size());
+				bigFleetCounter = (bigFleetCounter + 1) % nr;
+				EnemyFleetInfo i = v.elementAt(bigFleetCounter);
+				if (zoomSlider.getValue() < 200) GalaxyViewer.this.zoomSlider.setValue(200);
+				universe.centerOnPoint(i.p);
+				DecimalFormat d = new DecimalFormat("###,###");
+				String location = "("+i.p.x+","+i.p.y+")";
+				Integer planetId = planetNrs.get(i.p);
+				if (planetId != null){
+					location = planetNames.get(planetId);
+				}
+				info.setText("("+(bigFleetCounter+1)+"/"+nr+") "+i.shipCount+" enemy ships at "+location+" with a total mass of "+d.format(i.totalMass));
+			}
+		}
+	}
+	
+	private class EnemyFleetInfo implements Comparable<EnemyFleetInfo>{
+		Point p;
+		long shipCount;
+		long totalMass;
+		private EnemyFleetInfo(Point p, long shipCount, long totalMass){
+			this.p = p;
+			this.shipCount = shipCount;
+			this.totalMass = totalMass;
+		}
+		@Override
+		public int compareTo(EnemyFleetInfo o) {
+			return new Long(o.totalMass).compareTo(totalMass);
+		}
 	}
 }

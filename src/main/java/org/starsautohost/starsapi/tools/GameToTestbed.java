@@ -245,7 +245,7 @@ public class GameToTestbed {
 
     }
     
-    private class FleetInfo {
+    protected class FleetInfo {
         FleetBlock definitive;
         List<Block> waypointsAndNameBlocks = new ArrayList<Block>();
         PartialFleetBlock bestPartial;
