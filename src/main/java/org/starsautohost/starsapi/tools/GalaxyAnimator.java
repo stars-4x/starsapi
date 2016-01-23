@@ -8,6 +8,8 @@ import java.util.Vector;
 
 import javax.swing.*;
 
+import org.starsautohost.starsapi.tools.GalaxyViewer.SelectDirectory;
+
 public class GalaxyAnimator extends JFrame implements ActionListener{
 
 	private static final long serialVersionUID = 1L;
@@ -23,7 +25,8 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 	
 	public static void main(String[] args){
 		try{
-			Settings settings = Settings.init();
+			Settings settings = new Settings();
+			settings.showNow();
 			new GalaxyAnimator(settings);
 		}catch(Exception ex){
 			ex.printStackTrace();
@@ -33,47 +36,57 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		}
 	}
 		
-	private static class Settings{
+	protected static class Settings extends JPanel{
+		private static final long serialVersionUID = 1L;
 		protected String directory = ".";
 		protected String gameName = "";
+		JTextField gName;
+		JTextField dir;
+		private File f;
+		
 		protected String getGameName(){
 			return gameName.toUpperCase();
 		}
-		public static Settings init() throws Exception{
-			File f = new File("galaxyanimator.ini");
+		public Settings() throws Exception{
+			f = new File("galaxyanimator.ini");
 			if (f.getAbsoluteFile().getParentFile().getName().equals("bin")) f = new File("..","galaxyanimator.ini");
-			Settings settings;
 			if (f.exists()){
-				settings = new Settings();
 				BufferedReader in = new BufferedReader(new FileReader(f));
 				while(true){
 					String s = in.readLine();
 					if (s == null) break;
 					if (s.contains("=") == false) continue;
 					String[] el = s.split("=",-1);
-					if (el[0].equalsIgnoreCase("GameName")) settings.gameName = el[1].trim();
-					if (el[0].equalsIgnoreCase("GameDir")) settings.directory = el[1].trim();
+					if (el[0].equalsIgnoreCase("GameName")) gameName = el[1].trim();
+					if (el[0].equalsIgnoreCase("GameDir")) directory = el[1].trim();
 				}
 				in.close();
 			}
-			else settings = new Settings();
-			JTextField gName = new JTextField(settings.gameName);
-			JTextField dir = new JTextField(""+settings.directory);
+			gName = new JTextField(gameName);
+			dir = new JTextField(""+directory);
+			JButton selectDir = new JButton("...");
+			selectDir.addActionListener(new SelectDirectory(gName,dir));
 			JPanel p = new JPanel();
 			p.setLayout(new GridLayout(3,2));
 			p.add(new JLabel("Game name")); p.add(gName);
-			p.add(new JLabel("Game directory")); p.add(dir);
+			p.add(new JLabel("Game directory")); p.add(GalaxyViewer.createPanel(null, dir, selectDir));
 			gName.setToolTipText("Do not include file extensions");
+			setLayout(new BorderLayout());
+			add(p,BorderLayout.CENTER);
+		}
+		public void showNow() throws Exception{
 			String[] el = {"Ok","Cancel"};
-			int ok = JOptionPane.showOptionDialog(null,p,"Choose settings",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null,el,el[0]);
+			int ok = JOptionPane.showOptionDialog(null,this,"Choose settings",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null,el,el[0]);
 			if (ok != 0) System.exit(0);
-			settings.directory = dir.getText().trim();
-			settings.gameName = gName.getText().trim();
+			update();
+		}
+		public void update() throws Exception{
+			directory = dir.getText().trim();
+			gameName = gName.getText().trim();
 			BufferedWriter out = new BufferedWriter(new FileWriter(f));
-			out.write("GameName="+settings.gameName+"\n");
-			out.write("GameDir="+settings.directory+"\n");
+			out.write("GameName="+gameName+"\n");
+			out.write("GameDir="+directory+"\n");
 			out.flush(); out.close();
-			return settings;
 		}
 	}
 	
@@ -91,7 +104,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		}
 		Vector<File> years = new Vector<File>();
 		for (File f : dir.listFiles()){
-			if (f.isDirectory() && isInteger(f.getName())) years.addElement(f);
+			if (f.isDirectory() && GalaxyViewer.isInteger(f.getName())) years.addElement(f);
 		}
 		if (years.size() <= 1) throw new Exception(years.size()+" years found.\nEach year should be a subdirectory with the year as directory name.");
 		
@@ -113,15 +126,6 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		play.addActionListener(this);
 		setVisible(true);
 		setExtendedState(getExtendedState()|JFrame.MAXIMIZED_BOTH );
-	}
-
-	private boolean isInteger(String s) {
-		try{
-			Integer.parseInt(s);
-			return true;
-		}catch(NumberFormatException ex){
-			return false;
-		}
 	}
 
 	@Override
@@ -201,6 +205,9 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 					GalaxyViewer gv = new GalaxyViewer(s,true);
 					viewers[t] = gv;
 					if (t == 0) setViewer(0);
+					else{ //Removing noise in initial play
+						gv.universe.setSize(viewers[0].universe.getSize());
+					}
 				}
 			}catch(final Exception ex){
 				ex.printStackTrace();

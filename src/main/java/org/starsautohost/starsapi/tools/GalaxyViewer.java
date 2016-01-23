@@ -6,11 +6,10 @@ import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
-
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
+import javax.swing.filechooser.FileNameExtensionFilter;
 import org.starsautohost.starsapi.block.Block;
 import org.starsautohost.starsapi.block.PartialFleetBlock;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
@@ -25,7 +24,7 @@ import org.starsautohost.starsapi.tools.GameToTestbed.PlayerInfo;
  * @author Runar Holen (platon79 on SAH-forums)
  *
  * TODO:
- * -Fleets, more info, etc
+ * -More info, etc
  * -Finally, make an android app to display galaxy when on the move (with dropbox-integration to get files?)
  */
 public class GalaxyViewer extends JFrame implements ActionListener, ChangeListener, KeyListener{
@@ -41,6 +40,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private int bigFleetCounter = -1;
 	private Vector<PlayerInfo> sortedPlayers = new Vector<PlayerInfo>();
 	private HashMap<Point,EnemyFleetInfo> enemyFleetInfo = new HashMap<Point,EnemyFleetInfo>();
+	private HashMap<Point,FriendlyFleetInfo> friendlyFleetInfo = new HashMap<Point,FriendlyFleetInfo>();
 	private HashMap<Point,Integer> totalFleetCount = new HashMap<Point,Integer>();
 	
 	//UI
@@ -52,6 +52,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
 	private JCheckBox showFleets = new JCheckBox("Show fleets",false);
+	private JTextField massFilter = new JTextField();
 	private JButton gotoBigFleets = new JButton("Go to big enemy fleets");
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
 	private JLabel info = new JLabel();
@@ -59,7 +60,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	
 	public static void main(String[] args) throws Exception{
 		try{
-			Settings settings = Settings.init();
+			Settings settings = new Settings();
+			settings.showNow();
 			new GalaxyViewer(settings,false);
 		}catch(Exception ex){
 			ex.printStackTrace();
@@ -69,55 +71,63 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
-	protected static class Settings{
+	protected static class Settings extends JPanel{
+		private static final long serialVersionUID = 1L;
 		protected int playerNr = 0;
 		protected String directory = ".";
 		protected String gameName = "";
+		protected JTextField pNr, gName, dir;
+		private File f;
+		
 		protected String getGameName(){
 			return gameName.toUpperCase();
 		}
-		public static Settings init() throws Exception{
-			File f = new File("galaxyviewer.ini");
+		public Settings() throws Exception{
+			f = new File("galaxyviewer.ini");
 			if (f.getAbsoluteFile().getParentFile().getName().equals("bin")) f = new File("..","galaxyviewer.ini");
-			Settings settings;
 			if (f.exists()){
-				settings = new Settings();
 				BufferedReader in = new BufferedReader(new FileReader(f));
 				while(true){
 					String s = in.readLine();
 					if (s == null) break;
 					if (s.contains("=") == false) continue;
 					String[] el = s.split("=",-1);
-					if (el[0].equalsIgnoreCase("PlayerNr")) settings.playerNr = Integer.parseInt(el[1].trim())-1;
-					if (el[0].equalsIgnoreCase("GameName")) settings.gameName = el[1].trim();
-					if (el[0].equalsIgnoreCase("GameDir")) settings.directory = el[1].trim();
+					if (el[0].equalsIgnoreCase("PlayerNr")) playerNr = Integer.parseInt(el[1].trim())-1;
+					if (el[0].equalsIgnoreCase("GameName")) gameName = el[1].trim();
+					if (el[0].equalsIgnoreCase("GameDir")) directory = el[1].trim();
 				}
 				in.close();
 			}
-			else settings = new Settings();
-			
-			JTextField pNr = new JTextField(""+(settings.playerNr+1));
-			JTextField gName = new JTextField(settings.gameName);
-			JTextField dir = new JTextField(""+settings.directory);
-			
+			pNr = new JTextField(""+(playerNr+1));
+			gName = new JTextField(gameName);
+			dir = new JTextField(""+directory);
+			JButton selectDir = new JButton("...");
+			selectDir.addActionListener(new SelectDirectory(gName,dir));
 			JPanel p = new JPanel();
 			p.setLayout(new GridLayout(3,2));
 			p.add(new JLabel("Player nr")); p.add(pNr);
 			p.add(new JLabel("Game name")); p.add(gName);
-			p.add(new JLabel("Game directory")); p.add(dir);
+			p.add(new JLabel("Game directory")); p.add(createPanel(null,dir,selectDir));
+			setLayout(new BorderLayout());
+			add(p, BorderLayout.CENTER);
 			gName.setToolTipText("Do not include file extensions");
+		}
+		public void showNow() throws Exception{
 			String[] el = {"Ok","Cancel"};
-			int ok = JOptionPane.showOptionDialog(null,p,"Choose settings",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null,el,el[0]);
+			int ok = JOptionPane.showOptionDialog(null,this,"Choose settings",JOptionPane.OK_CANCEL_OPTION,JOptionPane.QUESTION_MESSAGE,null,el,el[0]);
 			if (ok != 0) System.exit(0);
-			settings.playerNr = Integer.parseInt(pNr.getText().trim())-1;
-			settings.directory = dir.getText().trim();
-			settings.gameName = gName.getText().trim();
+			update();
+		}
+		public void update() throws Exception{
+			if (isInteger(pNr.getText().trim()) == false) throw new Exception("Specify a player nr");
+			playerNr = Integer.parseInt(pNr.getText().trim())-1;
+			directory = dir.getText().trim();
+			gameName = gName.getText().trim();
 			BufferedWriter out = new BufferedWriter(new FileWriter(f));
-			out.write("PlayerNr="+(settings.playerNr+1)+"\n");
-			out.write("GameName="+settings.gameName+"\n");
-			out.write("GameDir="+settings.directory+"\n");
+			out.write("PlayerNr="+(playerNr+1)+"\n");
+			out.write("GameName="+gameName+"\n");
+			out.write("GameDir="+directory+"\n");
 			out.flush(); out.close();
-			return settings;
 		}
 	}
 	
@@ -160,19 +170,28 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		JPanel cp = (JPanel)getContentPane();
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
-		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,gotoBigFleets);
+		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,new JLabel("Mass-filter:"),massFilter,gotoBigFleets);
 		JPanel south = new JPanel(); south.setLayout(new BorderLayout());
 		south.add(info,BorderLayout.NORTH);
 		south.add(s,BorderLayout.CENTER);
 		search.setPreferredSize(new Dimension(100,-1));
+		massFilter.setPreferredSize(new Dimension(75,-1));
 		cp.add(south,BorderLayout.SOUTH);
 		hw.addActionListener(this);
 		names.addActionListener(this);
 		zoomSlider.addChangeListener(this);
-		search.addKeyListener(this);
 		colorize.addActionListener(this);
 		showFleets.addActionListener(this);
 		gotoBigFleets.addActionListener(this);
+
+		search.addKeyListener(this);
+		massFilter.addKeyListener(this);
+		hw.addKeyListener(this);
+		names.addKeyListener(this);
+		colorize.addKeyListener(this);
+		showFleets.addKeyListener(this);
+		gotoBigFleets.addKeyListener(this);
+		
 		setSize(800,600);
 		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 		setLocation((screen.width-getWidth())/2, (screen.height-getHeight())/2);
@@ -269,11 +288,20 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					}
 					i += thisCount;
 					totalFleetCount.put(p,i);
-					if (isEnemy(pi.playerBlock)){ //Info will be merged for each point in space! :-)
+					if (isEnemy(pi.playerBlock.playerNumber)){ //Info will be merged for each point in space! :-)
 						EnemyFleetInfo info = enemyFleetInfo.get(p);
 						if (info == null){
 							info = new EnemyFleetInfo(p, 0, 0);
 							enemyFleetInfo.put(p,info);
+						}
+						info.shipCount += thisCount;
+						info.totalMass += f.mass;
+					}
+					else{ //Info will be merged for each point in space! :-)
+						FriendlyFleetInfo info = friendlyFleetInfo.get(p);
+						if (info == null){
+							info = new FriendlyFleetInfo(p, 0, 0);
+							friendlyFleetInfo.put(p,info);
 						}
 						info.shipCount += thisCount;
 						info.totalMass += f.mass;
@@ -372,8 +400,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
-	public boolean isEnemy(PlayerBlock pb) {
-		return pb.playerNumber != settings.playerNr && friends.contains(pb.playerNumber) == false;
+	public boolean isEnemy(int playerId) {
+		return playerId != settings.playerNr && friends.contains(playerId) == false;
 	}
 
 	private PartialPlanetBlock getPlanet(int id, int hwForPlayer){
@@ -483,11 +511,25 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				g.setFont(g.getFont().deriveFont((float)10));
 				
 				//Then, paint fleets!
+				int minimumMass = 0;
+				if (isInteger(massFilter.getText().trim())){
+					minimumMass = Integer.parseInt(massFilter.getText().trim());
+				}
 				for (PlayerInfo pi : sortedPlayers){
 					for (Integer fleetId : pi.fleets.keySet()){
 						FleetInfo fi = pi.fleets.get(fleetId);
 						PartialFleetBlock f = fi.definitive!=null?fi.definitive:fi.bestPartial;
 						Point p = new Point(f.x,f.y);
+						if (minimumMass > 0){
+							if (isEnemy(pi.playerBlock.playerNumber)){
+								EnemyFleetInfo i = enemyFleetInfo.get(p);
+								if (i != null && i.totalMass < minimumMass) continue;
+							}
+							else{
+								FriendlyFleetInfo i = friendlyFleetInfo.get(p);
+								if (i != null && i.totalMass < minimumMass) continue;
+							}
+						}						
 						Integer i = totalFleetCount.get(p);
 						Color col = getColor(pi.playerBlock.playerNumber);
 						g.setColor(col);
@@ -516,7 +558,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				}
 			}
 		}
-		
+
 		private Polygon getFleetShape(PartialFleetBlock f, int x, int y) {
 			int[] xPoints, yPoints;
 			double dx = (double)(f.deltaX-127);
@@ -674,22 +716,27 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	}
 	@Override
 	public void keyReleased(KeyEvent e) {
-		String s = search.getText().toLowerCase().trim();
-		if (s.equals("") == false){
-			//First pass: Starts with (So that Ney is prioritized before McCartney)
-			for (Integer id : planetNames.keySet()){
-				String name = planetNames.get(id).toLowerCase();
-				if (name.startsWith(s)){
-					universe.centerOnPoint(planetCoordinates.get(id));
-					return;
+		if (e.getSource() == massFilter){
+			repaint();
+		}
+		if (e.getSource() == search){
+			String s = search.getText().toLowerCase().trim();
+			if (s.equals("") == false){
+				//First pass: Starts with (So that Ney is prioritized before McCartney)
+				for (Integer id : planetNames.keySet()){
+					String name = planetNames.get(id).toLowerCase();
+					if (name.startsWith(s)){
+						universe.centerOnPoint(planetCoordinates.get(id));
+						return;
+					}
 				}
-			}
-			//Second pass: Contains
-			for (Integer id : planetNames.keySet()){
-				String name = planetNames.get(id).toLowerCase();
-				if (name.contains(s)){
-					universe.centerOnPoint(planetCoordinates.get(id));
-					return;
+				//Second pass: Contains
+				for (Integer id : planetNames.keySet()){
+					String name = planetNames.get(id).toLowerCase();
+					if (name.contains(s)){
+						universe.centerOnPoint(planetCoordinates.get(id));
+						return;
+					}
 				}
 			}
 		}
@@ -783,6 +830,17 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
+	private class FriendlyFleetInfo{
+		Point p;
+		long shipCount;
+		long totalMass;
+		private FriendlyFleetInfo(Point p, long shipCount, long totalMass){
+			this.p = p;
+			this.shipCount = shipCount;
+			this.totalMass = totalMass;
+		}
+	}
+	
 	private class EnemyFleetInfo implements Comparable<EnemyFleetInfo>{
 		Point p;
 		long shipCount;
@@ -795,6 +853,51 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		@Override
 		public int compareTo(EnemyFleetInfo o) {
 			return new Long(o.totalMass).compareTo(totalMass);
+		}
+	}
+	
+	protected static boolean isInteger(String s) {
+		try{
+			Integer.parseInt(s);
+			return true;
+		}catch(NumberFormatException ex){
+			return false;
+		}
+	}
+	
+	protected static JPanel createPanel(Component left, Component center, Component right){
+		JPanel p = new JPanel();
+		p.setLayout(new BorderLayout());
+		if (left != null) p.add(left,BorderLayout.WEST);
+		p.add(center,BorderLayout.CENTER);
+		if (right != null) p.add(right,BorderLayout.EAST);
+		return p;
+		
+	}
+	
+	protected static class SelectDirectory implements ActionListener{
+
+		private JTextField name;
+		private JTextField dir;
+
+		public SelectDirectory(JTextField name, JTextField dir) {
+			this.name = name;
+			this.dir = dir;
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			File current = new File(dir.getText());
+			if (current.exists() == false) current = null;
+			JFileChooser jfc = new JFileChooser(current);
+			jfc.addChoosableFileFilter(new FileNameExtensionFilter("Stars! MAP-file", "MAP"));
+			jfc.setAcceptAllFileFilterUsed(false);
+			jfc.showOpenDialog(dir);
+			File f = jfc.getSelectedFile();
+			if (f != null && f.exists()){
+				name.setText(f.getName().split("\\.")[0]);
+				dir.setText(f.getParentFile().getAbsolutePath());
+			}
 		}
 	}
 }
