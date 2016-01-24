@@ -67,9 +67,10 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 			JButton selectDir = new JButton("...");
 			selectDir.addActionListener(new SelectDirectory(gName,dir));
 			JPanel p = new JPanel();
-			p.setLayout(new GridLayout(3,2));
-			p.add(new JLabel("Game name")); p.add(gName);
-			p.add(new JLabel("Game directory")); p.add(GalaxyViewer.createPanel(null, dir, selectDir));
+			p.setLayout(new GridLayout(3,1));
+			p.add(createPanel(new JLabel("Game name"),gName));
+			p.add(createPanel(new JLabel("Game directory"),GalaxyViewer.createPanel(null, dir, selectDir)));
+			p.add(new JLabel("Directory must have subdirectories ala 2400, 2401, 2402 etc (complete set not needed)"));
 			gName.setToolTipText("Do not include file extensions");
 			setLayout(new BorderLayout());
 			add(p,BorderLayout.CENTER);
@@ -87,6 +88,12 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 			out.write("GameName="+gameName+"\n");
 			out.write("GameDir="+directory+"\n");
 			out.flush(); out.close();
+		}
+		private JPanel createPanel(Component c1, Component c2){
+			JPanel p = new JPanel();
+			p.setLayout(new GridLayout(1,2));
+			p.add(c1); p.add(c2);
+			return p;
 		}
 	}
 	
