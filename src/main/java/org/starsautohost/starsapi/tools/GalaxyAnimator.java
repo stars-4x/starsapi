@@ -103,12 +103,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		if (settings.gameName.equals("")) throw new Exception("GameName not defined in settings.");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		File dir = new File(settings.directory);
-		File map = new File(dir,settings.getGameName()+".MAP");
-		if (map.exists() == false){
-			String error = "Could not find "+map.getAbsolutePath()+"\n";
-			error += "Export this file from Stars! (Only needs to be done one time pr game)";
-			throw new Exception(error);
-		}
+		File map = GalaxyLauncher.getMapFile(dir,settings.getGameName());
 		Vector<File> years = new Vector<File>();
 		for (File f : dir.listFiles()){
 			if (f.isDirectory() && GalaxyViewer.isInteger(f.getName())) years.addElement(f);

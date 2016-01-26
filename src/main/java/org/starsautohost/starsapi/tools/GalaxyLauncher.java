@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 import javax.swing.*;
 
@@ -61,5 +62,20 @@ public class GalaxyLauncher extends JFrame implements ActionListener{
 			ex.printStackTrace();
 			JOptionPane.showMessageDialog(this, ex.toString());
 		}
+	}
+
+	public static File getMapFile(File dir, String gameName) throws Exception{
+		String original = gameName+".MAP";
+		File map = new File(dir,gameName+".MAP");
+		if (map.exists()) return map;
+		File f = new File(dir,gameName+".map");
+		if (f.exists()) return f;		
+		f = new File(dir.getParentFile(),gameName+".MAP");
+		if (f.exists()) return f;
+		f = new File(dir.getParentFile(),gameName+".map");
+		if (f.exists()) return f;
+		String error = "Could not find "+map.getAbsolutePath()+"\n";
+		error += "Export this file from Stars! (Only needs to be done one time pr game)";
+		throw new Exception(error);
 	}
 }
