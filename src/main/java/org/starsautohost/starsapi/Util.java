@@ -206,7 +206,11 @@ public class Util {
 	    for (int t = 0; t < hexChars.length(); t++){
 	    	char ch1 = hexChars.charAt(t);
 	    	if (ch1 == 'F'){
-	    		//Don't think I need to do anything here.
+	    		//Hm, what to do here?
+	    		//if (t+1 < hexChars.length() && hexChars.charAt(t+1) == '0'){
+	    		//result.append("\n");
+	    		//}
+	    		//t++;
 	    	}
 	    	else if (ch1 == 'E'){
 	    		char ch2 = hexChars.charAt(t+1);

@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import org.starsautohost.starsapi.Util;
 import org.starsautohost.starsapi.block.Block;
 import org.starsautohost.starsapi.block.PartialFleetBlock;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
@@ -42,12 +43,13 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private HashMap<Point,EnemyFleetInfo> enemyFleetInfo = new HashMap<Point,EnemyFleetInfo>();
 	private HashMap<Point,FriendlyFleetInfo> friendlyFleetInfo = new HashMap<Point,FriendlyFleetInfo>();
 	private HashMap<Point,Integer> totalFleetCount = new HashMap<Point,Integer>();
+	private HashMap<Integer,String> playerNames = new HashMap<Integer,String>();
 	
 	//UI
 	protected RPanel universe = new RPanel();
 	private JButton hw = new JButton("HW");
 	private JTextField search = new JTextField();
-	private JCheckBox names = new JCheckBox("Names",true);
+	private JCheckBox names = new JCheckBox("Names",false);
 	private JSlider zoomSlider = new JSlider(25, 600, 100);
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
@@ -246,14 +248,16 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	        }
 	        postProcess();
 	        
-			if (settings.playerNr >= 0){ //Not set if called from GalaxyAnimator
-				PlayerBlock player = players[settings.playerNr].playerBlock;
-				if (player != null){
-					for (PlayerInfo pi :players){
+	        for (PlayerInfo pi :players){
+	        	if (settings.playerNr >= 0){ //Not set if called from GalaxyAnimator
+	        		PlayerBlock player = players[settings.playerNr].playerBlock;
+	        		if (player != null){
 						if (pi == null || pi.playerBlock == null) continue;
 						if (player.getPlayerRelationsWith(pi.playerBlock.playerNumber) == 1) friends.addElement(pi.playerBlock.playerNumber);
 					}
 				}
+				String s = Util.decodeBytesForStarsString(pi.playerBlock.nameBytes);
+				playerNames.put(pi.playerBlock.playerNumber,s.split(" ")[0]);
 			}		
 			calculateFleetInfo();
 		}
@@ -423,6 +427,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			MyMouseListener mml = new MyMouseListener();
 			addMouseListener(mml);
 			addMouseMotionListener(mml);
+			setBackground(Color.black);
 		}
 		
 		private class MyMouseListener extends MouseAdapter{
@@ -476,28 +481,26 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					int stringWidth = g.getFontMetrics().stringWidth(name);
 					g.drawString(name, x-stringWidth/2, y+12);
 				}
-				if (colorize.isSelected() || animatorFrame){
-					int yy = 20;
-					g.setFont(g.getFont().deriveFont((float)12));
-					for (PlayerInfo pi : GalaxyViewer.this.p.players){
-						if (pi == null) continue;
-						PlayerBlock pb = pi.playerBlock;
-						if (pb == null) continue;
-						Color col = getColor(pb.playerNumber);
-						g.setColor(col);
-						String n = new String(pb.nameBytes); //Does not work. Must be converted.
-						n = "Player "+(pb.playerNumber+1);
+			}
+			if (colorize.isSelected() || animatorFrame){
+				int yy = 20;
+				g.setFont(g.getFont().deriveFont(Font.PLAIN,(float)12));
+				for (PlayerInfo pi : GalaxyViewer.this.p.players){
+					if (pi == null) continue;
+					PlayerBlock pb = pi.playerBlock;
+					if (pb == null) continue;
+					Color col = getColor(pb.playerNumber);
+					g.setColor(col);
+					String n = playerNames.get(pb.playerNumber);
+					if (n != null){
+						n = n.split(" ")[0]; //Due to some bug in decoding, name separator is not found, so just splitting on ' ' for now.
+						n += " ("+pi.planetCount+")";
 						g.drawString(n,5,yy);
-						//System.out.print(pb.playerNumber+": ");
-						//for (int t = 0; t < pb.nameBytes.length; t++){
-							//System.out.print((pb.nameBytes[t]&0xff)+" ");
-							//System.out.print((pb.nameBytes[t])+" ");
-						//}
-						//System.out.println();
-						yy += 14;
 					}
+					yy += 14;
 				}
 			}
+			
 			if (showFleets.isSelected()){
 				g.setFont(g.getFont().deriveFont((float)10));
 				
