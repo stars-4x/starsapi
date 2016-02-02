@@ -182,10 +182,62 @@ public class Util {
 	    for (int i = 1; i < res.length; i++) {
 	        char firstChar = hexChars.charAt(2*i - 2);
 	        char secondChar = hexChars.charAt(2*i - 1);
+	        //System.out.print(firstChar+""+secondChar);
 	        byte b = (byte)((charToNibble(firstChar) << 4) | (charToNibble(secondChar)));
 	        res[i] = b;
 	    }
 	    return res;
+	}
+	
+	public static String decodeBytesForStarsString(byte[] res) {
+		StringBuffer result = new StringBuffer();
+		//System.out.println("Decoding");
+		StringBuilder hexChars = new StringBuilder();
+	    for (int i = 1; i < res.length; i++) {
+	    	byte b = res[i];
+	    	byte b1 = (byte)((b & 0xff) >> 4);
+	    	byte b2 = (byte)((b & 0xff) % 16);
+	        char firstChar = nibbleToChar(b1);
+	        char secondChar = nibbleToChar(b2);
+	        hexChars.append(firstChar);
+	        hexChars.append(secondChar);
+	    }
+	    //System.out.println("HexChars: "+hexChars.toString());
+	    for (int t = 0; t < hexChars.length(); t++){
+	    	char ch1 = hexChars.charAt(t);
+	    	if (ch1 == 'F'){
+	    		//Don't think I need to do anything here.
+	    	}
+	    	else if (ch1 == 'E'){
+	    		char ch2 = hexChars.charAt(t+1);
+	    		int index = Integer.parseInt(""+ch2,16);
+	    		result.append(encodesE.charAt(index));
+	    		t++;
+	    	}
+	    	else if (ch1 == 'D'){
+	    		char ch2 = hexChars.charAt(t+1);
+	    		int index = Integer.parseInt(""+ch2,16);
+	    		result.append(encodesD.charAt(index));
+	    		t++;
+	    	}
+	    	else if (ch1 == 'C'){
+	    		char ch2 = hexChars.charAt(t+1);
+	    		int index = Integer.parseInt(""+ch2,16);
+	    		result.append(encodesC.charAt(index));
+	    		t++;
+	    	}
+	    	else if (ch1 == 'B'){
+	    		char ch2 = hexChars.charAt(t+1);
+	    		int index = Integer.parseInt(""+ch2,16);
+	    		result.append(encodesB.charAt(index));
+	    		t++;
+	    	}
+	    	else{
+	    		int index = Integer.parseInt(""+ch1,16);
+	    		result.append(encodesOneByte.charAt(index));
+	    	}
+	    }
+	    return result.toString();
 	}
 	
 	public static byte charToNibble(char ch) {
@@ -195,4 +247,20 @@ public class Util {
 	    throw new IllegalArgumentException();
 	}
 	
+	public static char nibbleToChar(byte b){
+		int i1 = (int)(b&0xff)+(int)'0';
+		int i2 = (int)(b&0xff)+(int)'A'-10;
+		int i3 = (int)(b&0xff)+(int)'a'-10;
+		if (i1 >= '0' && i1 <= '9') return (char)i1;
+		if (i2 >= 'A' && i2 <= 'F') return (char)i2;
+		if (i3 >= 'a' && i3 <= 'f') return (char)i3;
+		return ' '; //Could not find correct char
+	}
+
+	public static void main(String[] args){
+		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile("abc")));
+		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile("abcdefABCDEF12345")));
+		String all = " aehilnorstABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789bcdfgjkmpquvwxyz+-,!.?:;'*%$";
+		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile(all)));
+	}
 }
