@@ -248,7 +248,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	        }
 	        postProcess();
 	        
-	        for (PlayerInfo pi :players){
+	        for (PlayerInfo pi : players){
 	        	if (settings.playerNr >= 0){ //Not set if called from GalaxyAnimator
 	        		PlayerBlock player = players[settings.playerNr].playerBlock;
 	        		if (player != null){
@@ -256,8 +256,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						if (player.getPlayerRelationsWith(pi.playerBlock.playerNumber) == 1) friends.addElement(pi.playerBlock.playerNumber);
 					}
 				}
-				String s = Util.decodeBytesForStarsString(pi.playerBlock.nameBytes);
-				playerNames.put(pi.playerBlock.playerNumber,s.split(" ")[0]);
+	        	if (pi != null && pi.playerBlock != null){
+	        		String s = Util.decodeBytesForStarsString(pi.playerBlock.nameBytes);
+	        		playerNames.put(pi.playerBlock.playerNumber,s.split(" ")[0]);
+	        	}
 			}		
 			calculateFleetInfo();
 		}
