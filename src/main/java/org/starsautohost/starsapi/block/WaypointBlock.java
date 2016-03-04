@@ -1,12 +1,16 @@
 package org.starsautohost.starsapi.block;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Vector;
+
 import org.starsautohost.starsapi.Util;
 
-public class WaypointBlock extends Block {
-    public int x;
-    public int y;
+public class WaypointBlock extends Waypoint{
+    //public int x; //Now defined in Waypoint
+    //public int y; //Now defined in Waypoint
     public int positionObject;
-    public int warp;
+    //public int warp; //Now defined in Waypoint
     public int unknownBitsWithWarp;
     public int positionObjectType;
     
@@ -50,5 +54,28 @@ public class WaypointBlock extends Block {
 	    }
 	    res.encode();
 	    return res;
+	}
+
+	public static HashMap<Integer,Vector<Waypoint>> getFleetBlocks(List<Block> mBlocks) {
+		HashMap<Integer,Vector<Waypoint>> waypoints = new HashMap<Integer,Vector<Waypoint>>();
+		Vector<WaypointBlock> v = new Vector<WaypointBlock>();
+		for (Block b : mBlocks){
+			if (b instanceof WaypointBlock) v.addElement((WaypointBlock)b);
+		}
+		for (Block b : mBlocks){
+			if (b instanceof FleetBlock){
+				FleetBlock f = (FleetBlock)b;
+				System.out.println("Hei");
+				Vector<Waypoint> vv = waypoints.get(f.fleetNumber);
+				if (vv == null){
+					vv = new Vector<Waypoint>();
+					waypoints.put(f.fleetNumber,vv);
+				}
+				for (int t = 0; t < f.waypointCount; t++){	
+					vv.addElement(v.remove(0));
+				}
+			}
+		}
+		return waypoints;
 	}
 }

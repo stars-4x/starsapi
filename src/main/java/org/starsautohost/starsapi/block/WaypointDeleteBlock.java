@@ -1,6 +1,6 @@
 package org.starsautohost.starsapi.block;
 
-public class WaypointDeleteBlock extends Block {
+public class WaypointDeleteBlock extends WaypointChangeTaskBlock{
 
 	public WaypointDeleteBlock() {
 		typeId = BlockType.WAYPOINT_DELETE;
@@ -8,8 +8,9 @@ public class WaypointDeleteBlock extends Block {
 
 	@Override
 	public void decode() {
-		// TODO Auto-generated method stub
-
+		//System.out.println(super.toStringOld());
+		fleetNumber = (decryptedData[0] & 0xFF) + ((decryptedData[1] & 1) << 8);
+		wayPointNr = (decryptedData[2]&0xff);
 	}
 
 	@Override

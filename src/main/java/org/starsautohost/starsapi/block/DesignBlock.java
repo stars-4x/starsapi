@@ -22,6 +22,7 @@ public class DesignBlock extends Block {
     public long totalBuilt;
     public long totalRemaining;
     public List<Slot> slots = new ArrayList<Slot>();
+    public boolean colonizerModuleBug = false;
     
     public byte[] nameBytes;
     
@@ -33,18 +34,18 @@ public class DesignBlock extends Block {
 
 	@Override
 	public void decode() throws Exception {
-	    if ((decryptedData[0] & 3) != 3) {
-	        throw new Exception("Unexpected design first byte: " + this);
+		if ((decryptedData[0] & 3) != 3) {
+	        throw new Exception("Unexpected design first byte: " + toStringOld());
 	    }
         if ((decryptedData[0] & 0xF8) != 0) {
-            throw new Exception("Unexpected design first byte: " + this);
+            throw new Exception("Unexpected design first byte: " + toStringOld());
         }
         isFullDesign = (decryptedData[0] & 0x04) == 0x04;
         if ((decryptedData[1] & 0x02) != 0) {
-            throw new Exception("Unexpected design second byte: " + this);
+            throw new Exception("Unexpected design second byte: " + toStringOld());
         }
         if ((decryptedData[1] & 0x01) != 0x01) {
-            throw new Exception("Unexpected design second byte: " + this);
+            throw new Exception("Unexpected design second byte: " + toStringOld());
         }
         isTransferred = (decryptedData[1] & 0x80) == 0x80;
         isStarbase = (decryptedData[1] & 0x40) == 0x40;
@@ -70,6 +71,7 @@ public class DesignBlock extends Block {
                 slot.itemId = Util.read8(decryptedData[index++]);
                 slot.count = Util.read8(decryptedData[index++]);
                 slots.add(slot);
+                if (slot.itemId == 0 && slot.count == 0 && slot.category == 4096) colonizerModuleBug = true;
                 if (slot.count > 0) {
                     int key = (slot.category << 8) | (slot.itemId & 0xFF);
                     mass += slot.count * Items.itemMasses.get(key);
@@ -121,7 +123,7 @@ public class DesignBlock extends Block {
 	}
 
 	@Override
-	public void encode() {
+	public void encode() throws Exception{
 	    calculateMassAndFuelCapacity();
 	    byte[] data;
 	    if (isFullDesign) {
@@ -162,7 +164,7 @@ public class DesignBlock extends Block {
 	}
 	
 	// creates an empty hull with, in the case of ships, the Trans-Star 10 engine
-	public void convertToFullDesignForHstFile() {
+	public void convertToFullDesignForHstFile() throws Exception{
 	    if (isFullDesign) return;
 	    isFullDesign = true;
 	    armor = Items.ships[hullId].armor;
@@ -272,6 +274,10 @@ public class DesignBlock extends Block {
 	    return false;
 	}
 
+	public String toStringOld(){
+		return super.toString();
+	}
+	
 	@Override
 	public String toString() {
 	    StringBuilder sb = new StringBuilder();

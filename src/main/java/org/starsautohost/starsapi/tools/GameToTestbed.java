@@ -213,7 +213,7 @@ public class GameToTestbed {
             }
         }
         
-        public DesignBlock merge() {
+        public DesignBlock merge() throws Exception{
             if (bestResult != null) return bestResult;
             else {
                 bestResult = mergeInternal();

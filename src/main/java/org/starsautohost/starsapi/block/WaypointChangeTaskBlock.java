@@ -2,14 +2,14 @@ package org.starsautohost.starsapi.block;
 
 import org.starsautohost.starsapi.Util;
 
-public class WaypointChangeTaskBlock extends Block {
+public class WaypointChangeTaskBlock extends Waypoint {
 
 	public int fleetNumber;
-	public int moveType; // 1 for normal move, 0 for move via diamond-select
+	public int wayPointNr; // 0 for move via diamond-select, 1 for first waypoint, 2 for next etc 
 	public int unknownByte3;
-	public int x,y;
+	//public int x,y; //Now defined in Waypoint
 	public int target;
-	public int warp;
+	//public int warp; //Now defined in Waypoint
 	public int waypointTask;
 	public int unknownBitsWithTargetType; //Hm, got "9" in 2503 on some orders. Check?
 	public int targetType; //1-planet, 2-fleet, 4-deep space, 8-wormhole/trader/minefield
@@ -38,7 +38,7 @@ public class WaypointChangeTaskBlock extends Block {
 		x = Util.read16(decryptedData, 4);
 		y = Util.read16(decryptedData, 6);
 		target = (decryptedData[8] & 0xFF) + ((decryptedData[9] & 1) << 8);
-		moveType = (decryptedData[2]&0xff);
+		wayPointNr = (decryptedData[2]&0xff);
 		unknownByte3 = (decryptedData[3]&0xff);
 		targetType = (decryptedData[11]&0xff) % 16;
 		unknownBitsWithTargetType = (decryptedData[11]&0xff) >> 4;
@@ -47,7 +47,7 @@ public class WaypointChangeTaskBlock extends Block {
 
 	public String debug(){
 		String s = typeId==BlockType.WAYPOINT_CHANGE_TASK?"WPC#":"WPA#";
-		s += fleetNumber+": "+x+","+y+" MoveType "+moveType+" Warp "+warp+" Target "+target+" Type "+targetType;
+		s += fleetNumber+": "+x+","+y+" MoveType "+wayPointNr+" Warp "+warp+" Target "+target+" Type "+targetType;
 		s += " Task "+waypointTask+" TT "+subTaskIndex;
 		s += " ("+unknownByte3+" "+unknownBitsWithTargetType+")";
 		return s;
@@ -57,6 +57,16 @@ public class WaypointChangeTaskBlock extends Block {
 	public void encode() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	public String toStringOld(){
+		return super.toString();
+	}
+	
+	public String toString(){
+		if (typeId == BlockType.WAYPOINT_DELETE) return "MOVE DELETE "+wayPointNr+": #"+(fleetNumber+1);
+		String type = typeId == BlockType.WAYPOINT_ADD ? "ADD" : "CHANGE";		
+		return "MOVE "+type+" "+wayPointNr+": #"+(fleetNumber+1)+" to "+x+","+y;
 	}
 
 }

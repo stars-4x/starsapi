@@ -32,10 +32,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 
 	private static final long serialVersionUID = 1L;
 	private Parser p;
-	private HashMap<Integer, String> planetNames = new HashMap<Integer, String>();
-	private HashMap<Integer, Point> planetCoordinates = new HashMap<Integer, Point>();
-	private HashMap<Point, Integer> planetNrs = new HashMap<Point, Integer>();
-	private int maxX = 0, maxY = 0;
+	private MapFileData map;
+	
 	private Settings settings;
 	protected Vector<Integer> friends = new Vector<Integer>();
 	private int bigFleetCounter = -1;
@@ -204,8 +202,20 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
-	private void parseMapFile(File map) throws Exception{
-		BufferedReader in = new BufferedReader(new FileReader(map));
+	public static class MapFileData{
+		public HashMap<Integer, String> planetNames = new HashMap<Integer, String>();
+		public HashMap<Integer, Point> planetCoordinates = new HashMap<Integer, Point>();
+		public HashMap<Point, Integer> planetNrs = new HashMap<Point, Integer>();
+		public int maxX = 0, maxY = 0;
+	}
+	
+	private void parseMapFile(File f) throws Exception{
+		map = parseMapFileData(f);
+	}
+	
+	public static MapFileData parseMapFileData(File f) throws Exception{
+		MapFileData map = new MapFileData();
+		BufferedReader in = new BufferedReader(new FileReader(f));
 		in.readLine();
 		while(true){
 			String s = in.readLine();
@@ -213,15 +223,16 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			if (s.trim().equals("")) continue;
 			String[] el = s.split("\t");
 			int id = Integer.parseInt(el[0])-1;
-			planetNames.put(id,el[3]);
+			map.planetNames.put(id,el[3]);
 			int x = Integer.parseInt(el[1]);
 			int y = Integer.parseInt(el[2]);
-			if (x > maxX) maxX = x;
-			if (y > maxY) maxY = y;
-			planetCoordinates.put(id,new Point(x,y));
-			planetNrs.put(new Point(x,y),id);
+			if (x > map.maxX) map.maxX = x;
+			if (y > map.maxY) map.maxY = y;
+			map.planetCoordinates.put(id,new Point(x,y));
+			map.planetNrs.put(new Point(x,y),id);
 		}
 		in.close();
+		return map;
 	}
 
 	protected class Parser extends GameToTestbed{
@@ -461,9 +472,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			int xOffset = (int)(getWidth() - virtualWidth) / 2;
 	        int yOffset = (int)(getHeight() - virtualHeight) / 2;
 	        
-			for (Integer id : planetNames.keySet()){
-				String name = planetNames.get(id);
-				Point p = planetCoordinates.get(id);
+			for (Integer id : map.planetNames.keySet()){
+				String name = map.planetNames.get(id);
+				Point p = map.planetCoordinates.get(id);
 				PartialPlanetBlock planet = getPlanet(id, -2);
 				g.setColor(Color.gray);
 				int rad = 3;
@@ -533,8 +544,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						int y = convertY(p.y);
 						x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 						y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
-						if (planetNrs.get(p) != null){ //Fleet at orbit
-							PartialPlanetBlock planet = getPlanet(planetNrs.get(p), -1);
+						if (map.planetNrs.get(p) != null){ //Fleet at orbit
+							PartialPlanetBlock planet = getPlanet(map.planetNrs.get(p), -1);
 							int rad = 10;				
 							if (col.equals(Color.green)) col = Color.white;
 					        g.drawOval(x-rad/2, y-rad/2, rad, rad);
@@ -628,7 +639,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			return x - 1000;
 		}
 		private int convertY(int y){
-			return maxY-y+10;
+			return map.maxY-y+10;
 		}
 		
 		public void centerOnPoint(Point p) {
@@ -645,10 +656,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 
 		public void zoomToFillGalaxy() {
-			double ySize = maxY-1000;
+			double ySize = map.maxY-1000;
 			zoom = 100.0 * getHeight() / ySize;
 			GalaxyViewer.this.zoomSlider.setValue((int)zoom);
-			Point center = new Point((maxX-1000)/2+1000,(maxY-1000)/2+1000);
+			Point center = new Point((map.maxX-1000)/2+1000,(map.maxY-1000)/2+1000);
 			centerOnPoint(center);
 			repaint();
 		}
@@ -659,7 +670,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		if (e.getSource() == hw){
 			PartialPlanetBlock planet = getPlanet(-1, settings.playerNr);
 			if (planet != null){
-				Point p = planetCoordinates.get(planet.planetNumber);
+				Point p = map.planetCoordinates.get(planet.planetNumber);
 				if (p != null) universe.centerOnPoint(p);
 			}
 			else{
@@ -719,18 +730,18 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			String s = search.getText().toLowerCase().trim();
 			if (s.equals("") == false){
 				//First pass: Starts with (So that Ney is prioritized before McCartney)
-				for (Integer id : planetNames.keySet()){
-					String name = planetNames.get(id).toLowerCase();
+				for (Integer id : map.planetNames.keySet()){
+					String name = map.planetNames.get(id).toLowerCase();
 					if (name.startsWith(s)){
-						universe.centerOnPoint(planetCoordinates.get(id));
+						universe.centerOnPoint(map.planetCoordinates.get(id));
 						return;
 					}
 				}
 				//Second pass: Contains
-				for (Integer id : planetNames.keySet()){
-					String name = planetNames.get(id).toLowerCase();
+				for (Integer id : map.planetNames.keySet()){
+					String name = map.planetNames.get(id).toLowerCase();
 					if (name.contains(s)){
-						universe.centerOnPoint(planetCoordinates.get(id));
+						universe.centerOnPoint(map.planetCoordinates.get(id));
 						return;
 					}
 				}
@@ -817,9 +828,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				universe.centerOnPoint(i.p);
 				DecimalFormat d = new DecimalFormat("###,###");
 				String location = "("+i.p.x+","+i.p.y+")";
-				Integer planetId = planetNrs.get(i.p);
+				Integer planetId = map.planetNrs.get(i.p);
 				if (planetId != null){
-					location = planetNames.get(planetId);
+					location = map.planetNames.get(planetId);
 				}
 				info.setText("("+(bigFleetCounter+1)+"/"+nr+") "+i.shipCount+" enemy ships at "+location+" with a total mass of "+d.format(i.totalMass));
 			}
