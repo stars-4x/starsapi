@@ -3,11 +3,15 @@ package org.starsautohost.starsapi.tools;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.Vector;
 
+import javax.imageio.stream.FileImageOutputStream;
+import javax.imageio.stream.ImageOutputStream;
 import javax.swing.*;
 
+import org.starsautohost.starsapi.tools.GalaxyViewer.RPanel;
 import org.starsautohost.starsapi.tools.GalaxyViewer.SelectDirectory;
 
 public class GalaxyAnimator extends JFrame implements ActionListener{
@@ -19,9 +23,11 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 	private JButton previous = new JButton("<<<");
 	private JButton next = new JButton(">>>");
 	private JButton play = new JButton("Play");
+	private JButton saveGif = new JButton("Save gif");
 	private JLabel year = new JLabel();
 	private JPanel content = new JPanel();
 	private int currentNr = -1;
+	private JButton[] buttons = {previous,next,play,saveGif};
 	
 	public static void main(String[] args){
 		try{
@@ -115,17 +121,20 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		JPanel cp = (JPanel)getContentPane();
 		cp.setLayout(new BorderLayout());
 		JPanel south = new JPanel();
-		south.setLayout(new GridLayout(1,4));
+		south.setLayout(new GridLayout(1,5));
 		year.setFont(year.getFont().deriveFont(Font.BOLD, 20));
 		south.add(year);
 		south.add(previous);
 		south.add(play);
 		south.add(next);
+		south.add(saveGif);
 		cp.add(content,BorderLayout.CENTER);
 		cp.add(south,BorderLayout.SOUTH);
 		previous.addActionListener(this);
 		next.addActionListener(this);
 		play.addActionListener(this);
+		saveGif.addActionListener(this);
+		saveGif.setToolTipText("NB! Image dimensions will be that of your current window size");
 		setVisible(true);
 		setExtendedState(getExtendedState()|JFrame.MAXIMIZED_BOTH );
 	}
@@ -137,6 +146,54 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		else if (e.getSource() == play){
 			if (player.playing == false && currentNr == loader.viewers.length - 1) setViewer(0);
 			player.startOrStop();
+		}
+		else if (e.getSource() == saveGif){
+			JFileChooser jfc = new JFileChooser();
+			jfc.setSelectedFile(new File("animation.gif"));
+			if (jfc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION){
+				File f = jfc.getSelectedFile();
+				if (f != null){
+					new SaveGifThread(f).start();
+				}
+			}
+		}
+	}
+	
+	private class SaveGifThread extends Thread{
+		private File f;
+
+		public SaveGifThread(File f) {
+			this.f = f;
+		}
+
+		public void run(){
+			try{
+				for (JButton b : buttons) b.setEnabled(false);
+				ImageOutputStream output = new FileImageOutputStream(f);
+				GifSequenceWriter gif = new GifSequenceWriter(output, BufferedImage.TYPE_INT_RGB, 1000, true);
+				for (int t = 0; t < loader.viewers.length; t++){
+					setViewer(t);
+					Thread.sleep(100);
+					RPanel p = loader.viewers[t].universe;
+					BufferedImage i = new BufferedImage(p.getWidth(), p.getHeight(), BufferedImage.TYPE_INT_RGB);
+					Graphics2D gr = i.createGraphics();
+					p.paint(gr);
+					gr.setColor(Color.blue);
+					gr.setFont(gr.getFont().deriveFont((float)30));
+					gr.drawString(year.getText(), 10, i.getHeight()-20);
+					gif.writeToSequence(i);
+				}
+				gif.close();
+			    output.close();
+			    JOptionPane.showMessageDialog(GalaxyAnimator.this, f.getAbsolutePath()+" created");
+			}catch(Exception ex){
+				ex.printStackTrace();
+				JOptionPane.showMessageDialog(GalaxyAnimator.this, ex.toString());
+			}catch(OutOfMemoryError err){
+				err.printStackTrace();
+				JOptionPane.showMessageDialog(GalaxyAnimator.this, "Increase available memory for java"+"\n"+err.toString());
+			}
+			for (JButton b : buttons) b.setEnabled(true);
 		}
 	}
 	
