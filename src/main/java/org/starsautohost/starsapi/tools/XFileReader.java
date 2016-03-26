@@ -1,22 +1,9 @@
 package org.starsautohost.starsapi.tools;
 
-import java.awt.Point;
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
-
 import org.starsautohost.starsapi.block.Block;
-import org.starsautohost.starsapi.block.DesignChangeBlock;
-import org.starsautohost.starsapi.block.FleetBlock;
-import org.starsautohost.starsapi.block.PlanetBlock;
-import org.starsautohost.starsapi.block.Waypoint;
-import org.starsautohost.starsapi.block.WaypointAddBlock;
-import org.starsautohost.starsapi.block.WaypointBlock;
-import org.starsautohost.starsapi.block.WaypointChangeTaskBlock;
-import org.starsautohost.starsapi.block.WaypointDeleteBlock;
-import org.starsautohost.starsapi.block.WaypointTaskBlock;
-import org.starsautohost.starsapi.encryption.Decryptor;
 import org.starsautohost.starsapi.tools.GalaxyViewer.MapFileData;
 
 /**
@@ -24,14 +11,6 @@ import org.starsautohost.starsapi.tools.GalaxyViewer.MapFileData;
  *
  */
 public class XFileReader {
-
-	private MapFileData map;
-	private List<Block> xBlocks, mBlocks;
-	private HashMap<Integer,FleetBlock> fleetBlocks = new HashMap<Integer,FleetBlock>();
-	private HashMap<Integer,PlanetBlock> planetBlocks = new HashMap<Integer,PlanetBlock>();
-	private HashMap<Integer,DesignChangeBlock> designChanges = new HashMap<Integer,DesignChangeBlock>();
-	private HashMap<Integer,Vector<Waypoint>> currentWaypoints = new HashMap<Integer,Vector<Waypoint>>();
- 	private HashMap<Integer,Vector<Waypoint>> fleetTasks = new HashMap<Integer,Vector<Waypoint>>();
 	
 	public static void main(String[] args) throws Exception{
 		try{
@@ -57,6 +36,7 @@ public class XFileReader {
 			}
 			MapFileData map = GalaxyViewer.parseMapFileData(mapFile);
 			PlayerState s = new PlayerState(mFile,xFile,map);
+			//printHistogram(s.xBlocks);
 			String error = s.sanitize();
 			if (error != null){
 				System.err.println(error);
@@ -78,6 +58,7 @@ public class XFileReader {
 			Integer i = hm.get(b.getClass());
 			if (i == null) i = 0;
 			hm.put(b.getClass(),i+1);
+			System.out.println(b.getClass().getName());
 		}
 		for (Class<?> c : hm.keySet()){
 			System.out.println(c.getName()+"\t"+hm.get(c));

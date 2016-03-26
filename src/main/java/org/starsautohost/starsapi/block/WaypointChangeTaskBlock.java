@@ -18,7 +18,7 @@ public class WaypointChangeTaskBlock extends Waypoint {
 	public WaypointChangeTaskBlock() {
 		typeId = BlockType.WAYPOINT_CHANGE_TASK;
 	}
-
+	
 	/**
 	 * Seems to be:
 	 * Fleet nr for fleets
@@ -68,5 +68,4 @@ public class WaypointChangeTaskBlock extends Waypoint {
 		String type = typeId == BlockType.WAYPOINT_ADD ? "ADD" : "CHANGE";		
 		return "MOVE "+type+" "+wayPointNr+": #"+(fleetNumber+1)+" to "+x+","+y;
 	}
-
 }

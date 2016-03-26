@@ -135,4 +135,17 @@ public abstract class Block {
 
 		return s;
 	}
+	
+	public Block cloneBlock() throws Exception{
+		Block b = this.getClass().newInstance();
+		b.typeId = typeId;
+		b.size = size;
+		b.encrypted = encrypted;
+		b.data = data;
+		b.hasData = hasData;
+		b.hasDecryptedData = hasDecryptedData;
+		b.decryptedData = decryptedData;
+		decode();
+		return b;
+	}
 }

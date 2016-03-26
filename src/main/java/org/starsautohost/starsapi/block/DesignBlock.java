@@ -23,6 +23,7 @@ public class DesignBlock extends Block {
     public long totalRemaining;
     public List<Slot> slots = new ArrayList<Slot>();
     public boolean colonizerModuleBug = false;
+    public boolean spaceDocBug = false;
     
     public byte[] nameBytes;
     
@@ -72,6 +73,9 @@ public class DesignBlock extends Block {
                 slot.count = Util.read8(decryptedData[index++]);
                 slots.add(slot);
                 if (slot.itemId == 0 && slot.count == 0 && slot.category == 4096) colonizerModuleBug = true;
+                if (isStarbase && hullId == 33 && slot.itemId == 11 && slot.category == 8 && slot.count >= 22 && armor >= 49518){
+                	spaceDocBug = true;
+                }
                 if (slot.count > 0) {
                     int key = (slot.category << 8) | (slot.itemId & 0xFF);
                     mass += slot.count * Items.itemMasses.get(key);

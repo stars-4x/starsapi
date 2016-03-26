@@ -56,16 +56,21 @@ public class WaypointBlock extends Waypoint{
 	    return res;
 	}
 
+	/**
+	 * @param mBlocks If multiple turns in one m-file, should be only last turns blocks.
+	 */
 	public static HashMap<Integer,Vector<Waypoint>> getFleetBlocks(List<Block> mBlocks) {
 		HashMap<Integer,Vector<Waypoint>> waypoints = new HashMap<Integer,Vector<Waypoint>>();
 		Vector<WaypointBlock> v = new Vector<WaypointBlock>();
 		for (Block b : mBlocks){
-			if (b instanceof WaypointBlock) v.addElement((WaypointBlock)b);
+			if (b instanceof WaypointBlock){
+				WaypointBlock wp = (WaypointBlock)b;
+				v.addElement(wp);
+			}
 		}
 		for (Block b : mBlocks){
 			if (b instanceof FleetBlock){
 				FleetBlock f = (FleetBlock)b;
-				System.out.println("Hei");
 				Vector<Waypoint> vv = waypoints.get(f.fleetNumber);
 				if (vv == null){
 					vv = new Vector<Waypoint>();
