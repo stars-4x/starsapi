@@ -140,7 +140,7 @@ public class HFileMerger {
                 newBlocks.add(block);
             }
         }
-        new Decryptor().writeBlocks(filename, newBlocks);
+        new Decryptor().writeBlocks(filename, newBlocks, false);
     }
 
     private static String backupFilename(String filename) {

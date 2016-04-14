@@ -8,7 +8,7 @@ public class WaypointChangeTaskBlock extends Waypoint {
 	public int wayPointNr; // 0 for move via diamond-select, 1 for first waypoint, 2 for next etc 
 	public int unknownByte3;
 	//public int x,y; //Now defined in Waypoint
-	public int target;
+	public int target; //See getTarget()
 	//public int warp; //Now defined in Waypoint
 	public int waypointTask;
 	public int unknownBitsWithTargetType; //Hm, got "9" in 2503 on some orders. Check?
@@ -45,6 +45,26 @@ public class WaypointChangeTaskBlock extends Waypoint {
 		if (size > 12) subTaskIndex = decryptedData[12]&0xff;
 	}
 
+	@Override
+	public void encode() {
+		byte[] data = new byte[subTaskIndex>0?13:12];
+		Util.write16(data, 0, fleetNumber);
+		data[2] = (byte)wayPointNr;
+		data[3] = (byte)unknownByte3;
+		Util.write16(data, 4, x);
+	    Util.write16(data, 6, y);
+	    Util.write16(data, 8, target); //This must be checked
+	    data[10] = (byte)((warp << 4) | waypointTask);
+	    data[11] = (byte)((unknownBitsWithTargetType << 4) | targetType);
+	    if (data.length > 12) data[12] = (byte)subTaskIndex;
+	    setDecryptedData(data, data.length);
+        setData(data, data.length);
+        size = data.length;
+        encrypted = false;
+
+	}
+
+	
 	public String debug(){
 		String s = typeId==BlockType.WAYPOINT_CHANGE_TASK?"WPC#":"WPA#";
 		s += fleetNumber+": "+x+","+y+" MoveType "+wayPointNr+" Warp "+warp+" Target "+target+" Type "+targetType;
@@ -52,17 +72,7 @@ public class WaypointChangeTaskBlock extends Waypoint {
 		s += " ("+unknownByte3+" "+unknownBitsWithTargetType+")";
 		return s;
 	}
-	
-	@Override
-	public void encode() {
-		// TODO Auto-generated method stub
 		
-	}
-	
-	public String toStringOld(){
-		return super.toString();
-	}
-	
 	public String toString(){
 		if (typeId == BlockType.WAYPOINT_DELETE) return "MOVE DELETE "+wayPointNr+": #"+(fleetNumber+1);
 		String type = typeId == BlockType.WAYPOINT_ADD ? "ADD" : "CHANGE";		

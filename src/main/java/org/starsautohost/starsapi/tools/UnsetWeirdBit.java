@@ -14,6 +14,6 @@ public class UnsetWeirdBit {
                 ((PartialPlanetBlock) block).weirdBit = false;
             }
         }
-        new Decryptor().writeBlocks(System.out, blocks);
+        new Decryptor().writeBlocks(System.out, blocks, false);
     }
 }

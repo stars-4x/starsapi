@@ -14,11 +14,11 @@ public class PlayerState {
 
 	protected List<Block> mBlocks, lastMBlocks, xBlocks;
 	private MapFileData map;
-	private HashMap<Integer,FleetBlock> fleetBlocks = new HashMap<Integer,FleetBlock>();
+	public HashMap<Integer,FleetBlock> fleetBlocks = new HashMap<Integer,FleetBlock>();
 	private HashMap<Integer,PlanetBlock> planetBlocks = new HashMap<Integer,PlanetBlock>();
 	private HashMap<Integer,DesignChangeBlock> designChangesShips = new HashMap<Integer,DesignChangeBlock>();
 	private HashMap<Integer,DesignChangeBlock> designChangesStarbases = new HashMap<Integer,DesignChangeBlock>();
-	private HashMap<Integer,Vector<Waypoint>> waypoints = new HashMap<Integer,Vector<Waypoint>>();
+	public HashMap<Integer,Vector<Waypoint>> waypoints = new HashMap<Integer,Vector<Waypoint>>();
 	private FileHeaderBlock mFileHeader = null;
 	
 	public PlayerState(File mFile, File xFile, MapFileData map) throws Exception{

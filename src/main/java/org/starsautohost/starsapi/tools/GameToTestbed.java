@@ -1014,7 +1014,7 @@ public class GameToTestbed {
             blocks.addAll(playerInfo.battlePlans);
         }
         blocks.add(FileFooterBlock.zeroFileFooterBlockForHstOrMFile());
-        new Decryptor().writeBlocks(hstFileName, blocks);
+        new Decryptor().writeBlocks(hstFileName, blocks, false);
     }
     
     private void createMFile(int thisPlayerNumber) throws Exception {
@@ -1093,7 +1093,7 @@ public class GameToTestbed {
         PlayerInfo playerInfo = players[thisPlayerNumber];
         blocks.addAll(playerInfo.battlePlans);
         blocks.add(FileFooterBlock.zeroFileFooterBlockForHstOrMFile());
-        new Decryptor().writeBlocks(mFileName, blocks);
+        new Decryptor().writeBlocks(mFileName, blocks, false);
     }
 
     private void createHFile(int thisPlayerNumber) throws Exception {
@@ -1138,7 +1138,7 @@ public class GameToTestbed {
             }
         }
         blocks.add(FileFooterBlock.emptyFileFooterBlockForHFile());
-        new Decryptor().writeBlocks(hFileName, blocks);
+        new Decryptor().writeBlocks(hFileName, blocks, false);
     }
 
 }

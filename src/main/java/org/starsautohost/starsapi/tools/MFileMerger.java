@@ -258,7 +258,7 @@ public class MFileMerger {
                     throw new Exception("Unexpected block: " + block);
                 }
             }
-            new Decryptor().writeBlocks(filename, newBlocks);
+            new Decryptor().writeBlocks(filename, newBlocks, false);
         }
         
         private void doPlayers(List<Block> newBlocks) {

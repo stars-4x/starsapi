@@ -58,7 +58,7 @@ public class XFileReader {
 			Integer i = hm.get(b.getClass());
 			if (i == null) i = 0;
 			hm.put(b.getClass(),i+1);
-			System.out.println(b.getClass().getName());
+			//System.out.println(b.getClass().getName());
 		}
 		for (Class<?> c : hm.keySet()){
 			System.out.println(c.getName()+"\t"+hm.get(c));

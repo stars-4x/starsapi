@@ -13,10 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.starsautohost.starsapi.Util;
-import org.starsautohost.starsapi.block.Block;
-import org.starsautohost.starsapi.block.BlockType;
-import org.starsautohost.starsapi.block.FileHeaderBlock;
-import org.starsautohost.starsapi.block.PlanetsBlock;
+import org.starsautohost.starsapi.block.*;
 
 
 /**
@@ -362,7 +359,19 @@ public class Decryptor
     /**
      * Write blocks to an output stream.  Blocks must be previously encoded.  This method will encrypt as needed.
      */
-    public void writeBlocks(OutputStream out, List<Block> blocks) throws Exception {
+    public void writeBlocks(OutputStream out, List<Block> blocks, boolean updateFileHashBlock) throws Exception {
+    	if (updateFileHashBlock){
+    		for (Block block : blocks){
+    			if (block instanceof FileHashBlock){ //Is needed to correctly write to x-files!
+    				FileHashBlock h = (FileHashBlock)block;
+    				if (blocks.size() < 3) throw new Exception("Internal error. Too few blocks.");
+    				int checkInt = (blocks.size() - 3) * 14; 
+    				System.out.println(blocks.size()+" "+checkInt);
+    				byte[] b = h.getDecryptedData();
+    				Util.write16(b, 0, checkInt);
+    			}
+    		}
+    	}
         for (Block block : blocks) {
             encryptBlock(block);
             writeBlock(out, block);
@@ -372,10 +381,10 @@ public class Decryptor
     /**
      * Write blocks to an file.  Encrypt as needed.
      */
-    public void writeBlocks(String filename, List<Block> blocks) throws Exception {
+    public void writeBlocks(String filename, List<Block> blocks, boolean updateFileHashBlock) throws Exception {
         OutputStream out = new BufferedOutputStream(new FileOutputStream(filename));
         try {
-            writeBlocks(out, blocks);
+            writeBlocks(out, blocks, updateFileHashBlock);
         } finally {
             out.close();
         }

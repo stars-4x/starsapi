@@ -124,16 +124,29 @@ public abstract class Block {
 		String s = "=> Block type: " + typeId + "; size: " + size + "\n";
 		
 		if(size > 0) {
-			s += "-- Original Block Data --\n";
+			s += "-- Original Block Data -- "+data.length+" ("+getClass().getName()+")"+"\n";
 			s += Util.bytesToString(data, 0, size) + "\n";
 			
 			if(encrypted) {
-				s += "-- Decrypted Block Data --\n";
+				s += "-- Decrypted Block Data -- "+decryptedData.length+" ("+getClass().getName()+")"+"\n";
 				s += Util.bytesToString(decryptedData, 0, size) + "\n";
 			}
 		}
 
 		return s;
+	}
+	
+	public String getDecryptedDataString(){
+		if (encrypted){
+			String s = "-- Decrypted Block Data --\n";
+			s += Util.bytesToString(decryptedData, 0, size) + "\n";
+			return s;
+		}
+		else{
+			String s = "-- Original Block Data --\n";
+			s += Util.bytesToString(data, 0, size) + "\n";
+			return s;
+		}
 	}
 	
 	public Block cloneBlock() throws Exception{
