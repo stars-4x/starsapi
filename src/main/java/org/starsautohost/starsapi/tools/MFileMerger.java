@@ -577,6 +577,7 @@ public class MFileMerger {
             if (first) {
                 gameId = headerBlock.gameId;
                 turn = headerBlock.turn;
+                first = false;
                 playerMask |= 1 << headerBlock.playerNumber;
             } else {
                 if (gameId != headerBlock.gameId) {
