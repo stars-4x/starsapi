@@ -360,16 +360,21 @@ public class Decryptor
      * Write blocks to an output stream.  Blocks must be previously encoded.  This method will encrypt as needed.
      */
     public void writeBlocks(OutputStream out, List<Block> blocks, boolean updateFileHashBlock) throws Exception {
-    	if (updateFileHashBlock){
+    	if (updateFileHashBlock){ //Is needed to correctly write to x-files!
+    		Block fileHashBlock = null;
+    		int nrOfBytes = 0;
     		for (Block block : blocks){
-    			if (block instanceof FileHashBlock){ //Is needed to correctly write to x-files!
-    				FileHashBlock h = (FileHashBlock)block;
-    				if (blocks.size() < 3) throw new Exception("Internal error. Too few blocks.");
-    				int checkInt = (blocks.size() - 3) * 14; 
-    				System.out.println(blocks.size()+" "+checkInt);
-    				byte[] b = h.getDecryptedData();
-    				Util.write16(b, 0, checkInt);
+    			if (block instanceof FileHashBlock){
+    				fileHashBlock = (FileHashBlock)block;
     			}
+    			else if (fileHashBlock != null){
+    				nrOfBytes += block.size+2;
+    			}
+    		}
+    		if (fileHashBlock != null){
+    			System.out.println("Writing "+nrOfBytes+" to FileHashBlock");
+				byte[] b = fileHashBlock.getDecryptedData();
+				Util.write16(b, 0, nrOfBytes);
     		}
     	}
         for (Block block : blocks) {

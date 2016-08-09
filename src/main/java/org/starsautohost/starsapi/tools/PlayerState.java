@@ -1,7 +1,7 @@
 package org.starsautohost.starsapi.tools;
 
 import java.awt.Point;
-import java.io.File;
+import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -12,7 +12,9 @@ import org.starsautohost.starsapi.tools.GalaxyViewer.MapFileData;
 
 public class PlayerState {
 
+	private File xFile, mFile;
 	protected List<Block> mBlocks, lastMBlocks, xBlocks;
+	protected Vector<Block> newXBlocks = new Vector<Block>();
 	private MapFileData map;
 	public HashMap<Integer,FleetBlock> fleetBlocks = new HashMap<Integer,FleetBlock>();
 	private HashMap<Integer,PlanetBlock> planetBlocks = new HashMap<Integer,PlanetBlock>();
@@ -23,6 +25,8 @@ public class PlayerState {
 	
 	public PlayerState(File mFile, File xFile, MapFileData map) throws Exception{
 		this.map = map;
+		this.xFile = xFile;
+		this.mFile = mFile;
 		mBlocks = new Decryptor().readFile(mFile.getAbsolutePath());
 		lastMBlocks = getLastMBlocks(mBlocks);
 		if (mBlocks.size() != lastMBlocks.size()) System.out.println("MBlocks reduced from "+mBlocks.size()+" to "+lastMBlocks.size());
@@ -44,108 +48,112 @@ public class PlayerState {
 				mFileHeader = fh;
 			}
 		}
-		int debugFleet = -2; //52; //55; //79; //-1; //55;
 		for (Block b : xBlocks){
-			//System.out.println(b.getClass().getName());
-			if (b instanceof FleetSplitBlock){
-				FleetSplitBlock split = (FleetSplitBlock)b;
-				int fleetNr = getNextAvailableFleetNr(waypoints);
-				if (debugFleet == -1 || debugFleet == split.fleetNumber || debugFleet == fleetNr){
-					System.out.println("Split: "+split.fleetNumber+" -> "+fleetNr);
-				}
-				Vector<Waypoint> v = waypoints.get(split.fleetNumber);
-				Vector<Waypoint> clone = new Vector<Waypoint>();
-				for (Waypoint w : v){
-					clone.addElement(w.cloneWaypoint());
-				}
-				waypoints.put(fleetNr, clone);
-				
+			analyzeXBlock(b);
+		}
+	}
+	
+	private void analyzeXBlock(Block b) throws Exception{
+		int debugFleet = -2; //52; //55; //79; //-1; //55;
+		//System.out.println(b.getClass().getName());
+		if (b instanceof FleetSplitBlock){
+			FleetSplitBlock split = (FleetSplitBlock)b;
+			int fleetNr = getNextAvailableFleetNr(waypoints);
+			if (debugFleet == -1 || debugFleet == split.fleetNumber || debugFleet == fleetNr){
+				System.out.println("Split: "+split.fleetNumber+" -> "+fleetNr);
 			}
-			if (b instanceof FleetsMergeBlock){
-				FleetsMergeBlock m = (FleetsMergeBlock)b;
-				for (int fleetNr : m.fleetsToMerge){
-					waypoints.remove(fleetNr);
-				}
-				if (debugFleet == -1 || debugFleet == m.fleetNumber || m.fleetsToMerge.contains(debugFleet)){
-					System.out.println("Merge: "+m.fleetNumber+" "+m.fleetsToMerge);
-				}
+			Vector<Waypoint> v = waypoints.get(split.fleetNumber);
+			Vector<Waypoint> clone = new Vector<Waypoint>();
+			for (Waypoint w : v){
+				clone.addElement(w.cloneWaypoint());
 			}
-			if (b instanceof WaypointChangeTaskBlock){
-				WaypointChangeTaskBlock task = (WaypointChangeTaskBlock)b;
-				Vector<Waypoint> v = waypoints.get(task.fleetNumber);
-				if (v == null){
-					if (debugFleet == task.fleetNumber){
-						System.out.println(task.getClass().getName()+" for "+task.fleetNumber);
-					}
-					String error = "Error finding waypoints for fleet # "+(task.fleetNumber+1);
-					//System.out.println(error);
-					throw new Exception(error);
-					//System.out.println("# " + (task.fleetNumber+1));
-					//continue;
-					//v = new Vector<Waypoint>();
-					//waypoints.put(task.fleetNumber, v);
+			waypoints.put(fleetNr, clone);
+			
+		}
+		if (b instanceof FleetsMergeBlock){
+			FleetsMergeBlock m = (FleetsMergeBlock)b;
+			for (int fleetNr : m.fleetsToMerge){
+				waypoints.remove(fleetNr);
+			}
+			if (debugFleet == -1 || debugFleet == m.fleetNumber || m.fleetsToMerge.contains(debugFleet)){
+				System.out.println("Merge: "+m.fleetNumber+" "+m.fleetsToMerge);
+			}
+		}
+		if (b instanceof WaypointChangeTaskBlock){
+			WaypointChangeTaskBlock task = (WaypointChangeTaskBlock)b;
+			Vector<Waypoint> v = waypoints.get(task.fleetNumber);
+			if (v == null){
+				if (debugFleet == task.fleetNumber){
+					System.out.println(task.getClass().getName()+" for "+task.fleetNumber);
 				}
-				//System.out.print(".");
-				if (task instanceof WaypointDeleteBlock){
-					if (debugFleet == -1 || debugFleet == task.fleetNumber){
-						System.out.println("Delete: "+task.fleetNumber+" ("+task.wayPointNr+")"); //+v.size());
-					}
-					v.removeElementAt(task.wayPointNr);
+				String error = "Error finding waypoints for fleet # "+(task.fleetNumber+1);
+				//System.out.println(error);
+				throw new Exception(error);
+				//System.out.println("# " + (task.fleetNumber+1));
+				//continue;
+				//v = new Vector<Waypoint>();
+				//waypoints.put(task.fleetNumber, v);
+			}
+			//System.out.print(".");
+			if (task instanceof WaypointDeleteBlock){
+				if (debugFleet == -1 || debugFleet == task.fleetNumber){
+					System.out.println("Delete: "+task.fleetNumber+" ("+task.wayPointNr+")"); //+v.size());
 				}
-				else if (task instanceof WaypointAddBlock){
-					if (debugFleet == -1 || debugFleet == task.fleetNumber){
-						System.out.println("Add: "+task.fleetNumber);
-					}
-					v.add(task.wayPointNr,task);
+				v.removeElementAt(task.wayPointNr);
+			}
+			else if (task instanceof WaypointAddBlock){
+				if (debugFleet == -1 || debugFleet == task.fleetNumber){
+					System.out.println("Add: "+task.fleetNumber);
 				}
+				v.add(task.wayPointNr,task);
+			}
+			else{
+				if (debugFleet == -1 || debugFleet == task.fleetNumber){
+					System.out.println("Change: "+task.fleetNumber);
+				}
+				v.set(task.wayPointNr,task);
+			}
+			//System.out.println(task);
+		}
+		else if (b instanceof DesignChangeBlock){
+			DesignChangeBlock d = (DesignChangeBlock)b;
+			if (d.delete){
+				if (d.isStarbase) designChangesStarbases.remove(d.designToDelete);
 				else{
-					if (debugFleet == -1 || debugFleet == task.fleetNumber){
-						System.out.println("Change: "+task.fleetNumber);
-					}
-					v.set(task.wayPointNr,task);
-				}
-				//System.out.println(task);
-			}
-			else if (b instanceof DesignChangeBlock){
-				DesignChangeBlock d = (DesignChangeBlock)b;
-				if (d.delete){
-					if (d.isStarbase) designChangesStarbases.remove(d.designToDelete);
-					else{
-						designChangesShips.remove(d.designToDelete);
-						//System.out.println("Deleting design "+d.designToDelete);
-						for (int id : fleetBlocks.keySet()){
-							FleetBlock f = fleetBlocks.get(id);
-							if (f.shipCount[d.designToDelete] > 0){
-								boolean onlyThis = true;
-								for (int t = 0; t < f.shipCount.length; t++){
-									if (t == d.designToDelete) continue;
-									if (f.shipCount[t] > 0){
-										onlyThis = false;
-										break;
-									}
+					designChangesShips.remove(d.designToDelete);
+					//System.out.println("Deleting design "+d.designToDelete);
+					for (int id : fleetBlocks.keySet()){
+						FleetBlock f = fleetBlocks.get(id);
+						if (f.shipCount[d.designToDelete] > 0){
+							boolean onlyThis = true;
+							for (int t = 0; t < f.shipCount.length; t++){
+								if (t == d.designToDelete) continue;
+								if (f.shipCount[t] > 0){
+									onlyThis = false;
+									break;
 								}
-								if (onlyThis){
-									System.out.println("Deleting fleet "+id+" due to design deletion.");
-									waypoints.remove(id);
-								}
+							}
+							if (onlyThis){
+								System.out.println("Deleting fleet "+id+" due to design deletion.");
+								waypoints.remove(id);
 							}
 						}
 					}
 				}
-				else{
-					if (d.isStarbase) designChangesStarbases.put(d.designNumber,d);
-					else designChangesShips.put(d.designNumber,d);
-				}
-				//System.out.println(d.toStringOld());
-				//System.out.println(d.toString());
-				//System.out.println(d.designNumber+" "+d.isStarbase+" "+d.delete+" "+d.designToDelete+" "+designChangesStarbases.size());
 			}
 			else{
-				//System.out.println(b.getClass().getName());
+				if (d.isStarbase) designChangesStarbases.put(d.designNumber,d);
+				else designChangesShips.put(d.designNumber,d);
 			}
+			//System.out.println(d.toStringOld());
+			//System.out.println(d.toString());
+			//System.out.println(d.designNumber+" "+d.isStarbase+" "+d.delete+" "+d.designToDelete+" "+designChangesStarbases.size());
+		}
+		else{
+			//System.out.println(b.getClass().getName());
 		}
 	}
-	
+
 	private Vector<Block> getLastMBlocks(List<Block> mBlocks) {
 		Vector<Block> latestFileBlocks = new Vector<Block>();
 		for (Block b : mBlocks){
@@ -215,5 +223,47 @@ public class PlayerState {
 			}
 		}
 		return null;
+	}
+	
+	public void addNewWaypoint(WaypointAddBlock wpa) throws Exception{
+		analyzeXBlock(wpa);
+		newXBlocks.addElement(wpa);
+	}
+
+	public boolean saveNewXFile() throws Exception{
+		if (newXBlocks.size() == 0){
+			System.out.println("No new blocks. Skipping x-file-saving");
+			return false;
+		}
+		if (xBlocks.size() == 0 || xBlocks.get(xBlocks.size()-1) instanceof FileFooterBlock == false) throw new Exception("Could not find FileFooterBlock in old x-file.");
+		Vector<Block> blocksToWrite = new Vector<Block>();
+		FileFooterBlock footer = (FileFooterBlock)xBlocks.remove(xBlocks.size()-1);
+		blocksToWrite.addAll(xBlocks);
+		blocksToWrite.addAll(newXBlocks);
+		blocksToWrite.add(footer);
+		createBackupFile(xFile);
+		new Decryptor().writeBlocks(xFile.getAbsolutePath(), blocksToWrite, true);
+		System.out.println("******* X-file written *******");
+		return true;
+	}
+
+	private void createBackupFile(File f) throws Exception{
+		int nr = 1;
+		File b = null;
+		do{
+			b = new File(f.getParentFile(),f.getName()+"_"+nr);
+			nr++;
+		}while(b.exists());
+		FileOutputStream out = new FileOutputStream(b);
+		FileInputStream in = new FileInputStream(f);
+		while(true){
+			int i = in.read();
+			if (i == -1) break;
+			out.write(i);
+		}
+		in.close();
+		out.flush();
+		out.close();
+		System.out.println(b.getName()+" saved as backup.");
 	}
 }

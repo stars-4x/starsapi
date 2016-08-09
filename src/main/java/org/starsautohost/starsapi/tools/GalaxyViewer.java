@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.TextLayout;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -54,19 +55,22 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JSlider zoomSlider = new JSlider(25, 600, 100);
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
-	private JCheckBox showFleets = new JCheckBox("Show fleets",false);
+	private JCheckBox showFleets = new JCheckBox("Fleets",false);
 	private JButton gotoBigFleets = new JButton("Go to big enemy fleets");
 	private JButton showFilters = new JButton("Show filters");
 	private JTextField massFilter = new JTextField();
 	private JCheckBox nubians = new JCheckBox("Nubians",true);
 	private JCheckBox battleships = new JCheckBox("Battleships",true);
 	private JCheckBox others = new JCheckBox("Others",true);
+	private JCheckBox showMt = new JCheckBox("MT",true);
+	private JCheckBox showMinefields = new JCheckBox("MF",false);
 	
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
 	private JLabel info = new JLabel();
 	private boolean animatorFrame;
 	private Vector<JCheckBox> playerFilters = new Vector<JCheckBox>();
 	private JPanel filterPanel = new JPanel();
+	private HashMap<String,TexturePaint> bufferedPatterns = new HashMap<String,TexturePaint>();
 	
 	public static void main(String[] args) throws Exception{
 		try{
@@ -173,7 +177,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
 		
-		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showFilters,gotoBigFleets);
+		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showFilters,showMt,showMinefields,gotoBigFleets);
 		JPanel south = new JPanel(); south.setLayout(new BorderLayout());
 		south.add(info,BorderLayout.NORTH);
 		south.add(filterPanel,BorderLayout.CENTER);
@@ -193,6 +197,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		nubians.addActionListener(this);
 		battleships.addActionListener(this);
 		others.addActionListener(this);
+		showMt.addActionListener(this);
+		showMinefields.addActionListener(this);
 		
 		search.addKeyListener(this);
 		massFilter.addKeyListener(this);
@@ -205,6 +211,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		nubians.addKeyListener(this);
 		battleships.addKeyListener(this);
 		others.addKeyListener(this);
+		showMt.addKeyListener(this);
+		showMinefields.addKeyListener(this);
 		
 		setSize(800,600);
 		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
@@ -213,6 +221,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		if (animatorFrame){
 			names.setSelected(false);
 			showFleets.setSelected(false);
+			showMt.setSelected(false);
 		}
 		else{
 			setExtendedState(getExtendedState()|JFrame.MAXIMIZED_BOTH);
@@ -507,6 +516,57 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			int xOffset = (int)(getWidth() - virtualWidth) / 2;
 	        int yOffset = (int)(getHeight() - virtualHeight) / 2;
 	        
+	        if (showMinefields.isSelected()){ //First, paint minefields (low priority
+	        	//BufferedImage mines = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+	        	for (Integer id : p.objects.keySet()){
+					ObjectBlock o = p.objects.get(id);
+					if (o.isMinefield()){
+						int x = convertX(o.x);
+						int y = convertY(o.y);
+						double r = Math.sqrt(o.mineCount);
+						x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
+						y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+						int rx = (int)(r*zoom/100.0);
+						int ry = (int)(r*zoom/100.0);
+						
+						TexturePaint tp = null;
+						
+						if (o.owner == settings.playerNr){
+							if (o.isMinefieldDetonating()){
+								tp = getMinefieldPattern(0, new Color(255,0,255));
+							}
+							else{
+								tp = getMinefieldPattern(o.getMinefieldType(), Color.white);
+							}
+						}
+						else{
+							if (friends.contains(o.owner)){
+								if (o.isMinefieldDetonating()){
+									tp = getMinefieldPattern(0, new Color(255,0,255));
+								}
+								else{
+									tp = getMinefieldPattern(o.getMinefieldType(), Color.yellow);
+								}
+							}
+							else{
+								if (o.isMinefieldDetonating()){
+									tp = getMinefieldPattern(0, new Color(255,0,155));
+								}
+								else{
+									tp = getMinefieldPattern(o.getMinefieldType(), Color.red);
+								}
+							}
+							
+						}
+						if (tp != null){
+							g.setPaint(tp);
+							g.fillOval(x-rx, y-ry, rx*2, ry*2);
+							g.setPaint(null);
+						}
+					}
+				}
+	        }
+	        
 			for (Integer id : map.planetNames.keySet()){
 				String name = map.planetNames.get(id);
 				Point p = map.planetCoordinates.get(id);
@@ -548,7 +608,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					yy += 14;
 				}
 			}
-			else if (showFleets.isSelected()){ //Paint total fleet count
+			else if (showFleets.isSelected()){ //Paint total fleet count (top left)
 				int yy = 20;
 				g.setFont(g.getFont().deriveFont(Font.PLAIN,(float)12));
 				for (PlayerInfo pi : GalaxyViewer.this.p.players){
@@ -679,16 +739,59 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						
 						Color old = g.getColor();
 						if (painted.get(p) == null){
-							if (i >= 1000) g.setColor(new Color(255,255,255,200));
-							else if (i >= 500) g.setColor(new Color(255,255,255,110));
-							else g.setColor(new Color(255,255,255,50));
+							int rr = 100, gg = 100, bb = 100;
+							if (i >= 1000) g.setColor(new Color(rr,gg,bb,200));
+							else if (i >= 500) g.setColor(new Color(rr,gg,bb,110));
+							else g.setColor(new Color(rr,gg,bb,50));
 							int fs = g.getFont().getSize();
 							g.fillRect(xx-3, yy-fs, stringWidth+6, fs+2);
 							g.setColor(old);
 							painted.put(p,old);
+							g.drawString(""+i, xx, yy);
+							g.setFont(g.getFont().deriveFont(Font.PLAIN,(float)10)); //Reset font
 						}
-						g.drawString(""+i, xx, yy);
-						g.setFont(g.getFont().deriveFont(Font.PLAIN,(float)10)); //Reset font						
+					}
+				}
+			}
+			
+			for (Integer id : p.objects.keySet()){
+				ObjectBlock o = p.objects.get(id);
+				if (o.isMT() && showMt.isSelected()){ //Paint MT
+					//System.out.println(o.toString());
+					g.setFont(g.getFont().deriveFont((float)10));
+					Color col = new Color(155,155,255);
+					g.setColor(col);
+					int x = convertX(o.x);
+					int y = convertY(o.y);
+					/*
+					double ddx = (double)o.x / (double)o.xDest;
+					double ddy = (double)o.y / (double)o.yDest;
+					double dx = ddx / (ddx+ddy);
+					double dy = ddy / (ddx+ddy);
+					int xd = (int)(100*dx);
+					int yd = (int)(100*dy);
+					*/
+					int xd = convertX(o.xDest);
+					int yd = convertY(o.yDest);
+					x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
+					y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+					xd = (int)(xOffset + xd*zoom/100.0 - mariginX*zoom/100.0);
+					yd = (int)(yOffset + yd*zoom/100.0 - mariginY*zoom/100.0);
+					double dx = o.getDeltaX();
+					double dy = o.getDeltaY();
+					Polygon mt = getFleetShape(dx,dy,x,y);
+					if (mt != null){
+						System.out.println(dx+" "+dy);
+						System.out.println("ABC: "+o.x+","+o.y+" -> "+o.xDest+","+o.yDest+"    "+x+","+y+" -> "+xd+","+yd);
+						g.fillPolygon(mt);
+						g.setStroke(new BasicStroke(0.1f));
+						g.drawLine(x,y,xd,yd);
+						//Do NOT comment in the following unless it is determined that part name may be revealed.
+						//String type = o.getMTPartName();
+						//int stringWidth = g.getFontMetrics().stringWidth(type);
+						//makeTransparent(g);
+						//g.drawString(type, x-stringWidth/2, y-10);
+						//makeOpaque(g);
 					}
 				}
 			}
@@ -707,9 +810,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 
 		private Polygon getFleetShape(PartialFleetBlock f, int x, int y) {
-			int[] xPoints, yPoints;
 			double dx = (double)(f.deltaX-127);
 			double dy = -(double)(f.deltaY-127);
+			return getFleetShape(dx, dy, x, y);
+		}
+		private Polygon getFleetShape(double dx, double dy, int x, int y){
+			int[] xPoints, yPoints;
 			//if (f.deltaX != 0 && f.deltaY != 0) System.out.println(f.deltaX+" "+f.deltaY+" "+dx+" "+dy);
 			if (dy < 0 && Math.abs(dy) / Math.abs(dx) >= 2.0){ //Up
 				xPoints = new int[]{x-4,x,x+4};
@@ -824,6 +930,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			repaint();
 		}
 		else if (e.getSource() == showFleets){
+			repaint();
+		}
+		else if (e.getSource() == showMt){
+			repaint();
+		}
+		else if (e.getSource() == showMinefields){
 			repaint();
 		}
 		else if (e.getSource() == gotoBigFleets){
@@ -1073,5 +1185,40 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				dir.setText(f.getParentFile().getAbsolutePath());
 			}
 		}
+	}
+	
+	protected TexturePaint getMinefieldPattern(int type, Color col){
+		String key = type+"_"+col.getRGB();
+		TexturePaint tp = bufferedPatterns.get(key);
+		if (tp != null) return tp;
+		BufferedImage img = new BufferedImage(8,8,BufferedImage.TYPE_INT_ARGB);
+		int rgb = col.getRGB();
+		if (type == 0){
+			img.setRGB(4, 0, rgb);
+			img.setRGB(2, 2, rgb);
+			img.setRGB(6, 2, rgb);
+			img.setRGB(0, 4, rgb);
+			img.setRGB(2, 6, rgb);
+			img.setRGB(6, 6, rgb);
+		}
+		else if (type == 1){ //Heavy
+			img.setRGB(0, 0, rgb);
+			img.setRGB(1, 2, rgb);
+			img.setRGB(3, 2, rgb);
+			img.setRGB(5, 4, rgb);
+			img.setRGB(4, 6, rgb);
+			img.setRGB(2, 7, rgb);
+		}
+		else if (type == 2){ //Bumpy
+			img.setRGB(0, 0, rgb);
+			img.setRGB(3, 1, rgb);
+			img.setRGB(6, 2, rgb);
+			img.setRGB(1, 4, rgb);
+			img.setRGB(2, 5, rgb);
+			img.setRGB(5, 7, rgb);
+		}
+		tp = new TexturePaint(img, new Rectangle(0, 0, 8, 8));
+		bufferedPatterns.put(key, tp);
+		return tp;
 	}
 }
