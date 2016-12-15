@@ -51,7 +51,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 		private File f;
 		
 		protected String getGameName(){
-			return gameName.toUpperCase();
+			return gameName;
 		}
 		public Settings() throws Exception{
 			f = new File("galaxyanimator.ini");

@@ -94,7 +94,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		private File f;
 		
 		protected String getGameName(){
-			return gameName.toUpperCase();
+			return gameName;
 		}
 		public Settings() throws Exception{
 			f = new File("galaxyviewer.ini");
@@ -157,11 +157,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		Vector<File> mFiles = new Vector<File>();
 		Vector<File> hFiles = new Vector<File>();
 		for (File f : dir.listFiles()){
-			if (f.getName().toUpperCase().endsWith("MAP")) continue;
-			if (f.getName().toUpperCase().endsWith("HST")) continue;
-			if (f.getName().toUpperCase().startsWith(settings.getGameName()+".M")) mFiles.addElement(f);
-			else if (f.getName().toUpperCase().startsWith(settings.getGameName()+".H")) hFiles.addElement(f);
-			else if (f.getName().toUpperCase().startsWith(settings.getGameName()+".XY")) hFiles.addElement(f);
+			String filename = f.getName();
+			if (hasExtension(filename, "map")) continue;
+			if (hasExtension(filename, "hst")) continue;
+			if (fileNameStarts(f.getName(), settings.getGameName()+".m")) mFiles.addElement(f);
+			else if (fileNameStarts(f.getName(), settings.getGameName()+".h")) hFiles.addElement(f);
+			else if (fileNameStarts(f.getName(), settings.getGameName()+".xy")) hFiles.addElement(f);
 		}
 		if (mFiles.size() == 0) throw new Exception("No M-files found matching game name.");
 		if (hFiles.size() == 0) throw new Exception("No H-files found matching game name.");
@@ -282,7 +283,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	            }
 			}
 	        if (xyFilename == null) throw new Exception("No XY file given");
-	        if (!xyFilename.toLowerCase().endsWith(".xy")) throw new Exception("Surprising XY filename without .XY: " + xyFilename);
+	        if (!hasExtension(xyFilename, ".xy")) throw new Exception("Surprising XY filename without .XY: " + xyFilename);
 	        filenameBase = xyFilename.substring(0, xyFilename.length() - 3);
 	        checkGameIdsAndYearsAndPlayers(files);
 	        for (Map.Entry<String, List<Block>> entry : files.entrySet()) {
@@ -1060,6 +1061,33 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			b = x;
 		}
 		return new Color(r, g, b);
+	}
+	
+	
+	/**
+	 * Check if file has the proper extension in a non case-sensitive way
+	 * @param fileName
+	 * @param extension
+	 * @return
+	 */
+	public static boolean hasExtension(String fileName, String extension){
+		if(fileName.toUpperCase().endsWith(extension.toUpperCase()))
+			return true;
+		
+		return false;
+	}
+	
+	/**
+	 * Check if file has the given name in a non case-sensitive way
+	 * @param fileName
+	 * @param testName
+	 * @return
+	 */
+	public static boolean fileNameStarts(String fileName, String testName){
+		if(fileName.toLowerCase().startsWith(testName.toLowerCase()))
+			return true;
+		
+		return false;
 	}
 	
 	/**
