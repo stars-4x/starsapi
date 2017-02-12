@@ -111,6 +111,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 			gameName = gName.getText().trim();
 			startFrame = Integer.parseInt(start.getText());
 			maxFrames = Integer.parseInt(max.getText());
+			paintVoronoi = voronoi.isSelected();
 			BufferedWriter out = new BufferedWriter(new FileWriter(f));
 			out.write("GameName="+gameName+"\n");
 			out.write("GameDir="+directory+"\n");

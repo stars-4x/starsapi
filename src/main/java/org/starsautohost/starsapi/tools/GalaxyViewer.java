@@ -603,7 +603,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				}
 	        }
 	        
-	        if (animatorFrame){ //Show Voronoi colors! :-D
+	        if (paintVoronoi){ //Show Voronoi colors! :-D
 	        	g.setStroke(new BasicStroke(1f));
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 				
