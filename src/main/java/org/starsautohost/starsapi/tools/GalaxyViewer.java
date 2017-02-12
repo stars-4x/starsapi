@@ -2,19 +2,15 @@ package org.starsautohost.starsapi.tools;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.font.TextLayout;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
-
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
 import org.starsautohost.starsapi.Util;
 import org.starsautohost.starsapi.block.*;
 import org.starsautohost.starsapi.encryption.Decryptor;
@@ -64,19 +60,24 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JCheckBox others = new JCheckBox("Others",true);
 	private JCheckBox showMt = new JCheckBox("MT",true);
 	private JCheckBox showMinefields = new JCheckBox("MF",false);
+	private JCheckBox showWormholes = new JCheckBox("WH",false);
+	private JButton allPlayers = new JButton("All");
+	private JButton noPlayers = new JButton("None");
 	
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
 	private JLabel info = new JLabel();
-	private boolean animatorFrame;
+	private boolean animatorFrame, paintVoronoi;
 	private Vector<JCheckBox> playerFilters = new Vector<JCheckBox>();
 	private JPanel filterPanel = new JPanel();
-	private HashMap<String,TexturePaint> bufferedPatterns = new HashMap<String,TexturePaint>();
+	private static HashMap<String,TexturePaint> bufferedPatterns = new HashMap<String,TexturePaint>();
+	private static BufferedImage wormholeImage = getWormholeImage();
+	private int year = -1;
 	
 	public static void main(String[] args) throws Exception{
 		try{
 			Settings settings = new Settings();
 			settings.showNow();
-			new GalaxyViewer(settings,false);
+			new GalaxyViewer(settings,false,false);
 		}catch(Exception ex){
 			ex.printStackTrace();
 			System.err.println(ex.toString());
@@ -145,10 +146,12 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
-	public GalaxyViewer(Settings settings, boolean animatorFrame) throws Exception{
+	public GalaxyViewer(Settings settings, boolean animatorFrame, boolean paintVoronoi) throws Exception{
 		super("Stars GalaxyViewer");
+		PlayerBlock.ignoreParseErrors = true;
 		this.settings = settings;
 		this.animatorFrame = animatorFrame;
+		this.paintVoronoi = paintVoronoi;
 		if (settings.gameName.equals("")) throw new Exception("GameName not defined in settings.");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		filterPanel.setLayout(new BorderLayout());
@@ -164,7 +167,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			else if (f.getName().toUpperCase().startsWith(settings.getGameName()+".XY")) hFiles.addElement(f);
 		}
 		if (mFiles.size() == 0) throw new Exception("No M-files found matching game name.");
-		if (hFiles.size() == 0) throw new Exception("No H-files found matching game name.");
+		if (hFiles.size() == 0){
+			System.out.println("Warning: No H-files found matching game name.");
+			//throw new Exception("No H-files found matching game name.");
+		}
 		parseMapFile(map);
 		Vector<File> files = new Vector<File>();
 		files.addAll(mFiles);
@@ -177,7 +183,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
 		
-		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showFilters,showMt,showMinefields,gotoBigFleets);
+		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showFilters,showMt,showMinefields,showWormholes,gotoBigFleets);
 		JPanel south = new JPanel(); south.setLayout(new BorderLayout());
 		south.add(info,BorderLayout.NORTH);
 		south.add(filterPanel,BorderLayout.CENTER);
@@ -199,11 +205,15 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		others.addActionListener(this);
 		showMt.addActionListener(this);
 		showMinefields.addActionListener(this);
+		showWormholes.addActionListener(this);
+		allPlayers.addActionListener(this);
+		noPlayers.addActionListener(this);
 		
 		search.addKeyListener(this);
 		massFilter.addKeyListener(this);
 		hw.addKeyListener(this);
 		names.addKeyListener(this);
+		zoomSlider.addKeyListener(this);
 		colorize.addKeyListener(this);
 		showFleets.addKeyListener(this);
 		gotoBigFleets.addKeyListener(this);
@@ -213,6 +223,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		others.addKeyListener(this);
 		showMt.addKeyListener(this);
 		showMinefields.addKeyListener(this);
+		showWormholes.addKeyListener(this);
+		allPlayers.addKeyListener(this);
+		noPlayers.addKeyListener(this);
 		
 		setSize(800,600);
 		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
@@ -281,7 +294,22 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	                xyFilename = f.getAbsolutePath();
 	            }
 			}
-	        if (xyFilename == null) throw new Exception("No XY file given");
+	        if (xyFilename == null && filesIn.size() > 0){
+	        	File first = filesIn.firstElement();
+	        	File ff = new File(first.getParentFile().getParentFile(),first.getName().split("\\.")[0]+".xy");
+	        	if (ff.exists()){
+	        		System.out.println("Parsing xy-file in parent directory");
+	        		List<Block> blocks = new Decryptor().readFile(ff.getAbsolutePath());
+					System.out.println(blocks.size()+" blocks to parse");
+					files.put(ff.getAbsolutePath(),blocks);
+					if (isProblem(ff.getAbsolutePath(), blocks)) throw new Exception("An error occured");
+					if (checkXYFile(blocks) == false) throw new Exception("Internal error reading xy-file.");
+		            xyFilename = ff.getAbsolutePath();
+	        	}
+	        	else{
+	        		throw new Exception("No XY file given (ant not in parent directory)"+"\n"+"Tried directory: "+ff.getParentFile().getAbsolutePath()+"\n"+ff.getName());
+	        	}
+	        }
 	        if (!xyFilename.toLowerCase().endsWith(".xy")) throw new Exception("Surprising XY filename without .XY: " + xyFilename);
 	        filenameBase = xyFilename.substring(0, xyFilename.length() - 3);
 	        checkGameIdsAndYearsAndPlayers(files);
@@ -311,9 +339,15 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	           	}
 			}		
 			calculateFleetInfo();
-			JCheckBox[] pfs = new JCheckBox[playerFilters.size()];
-			for (int t = 0; t < pfs.length; t++) pfs[t] = playerFilters.elementAt(t);
-			filterPanel.add(createPanel(0, pfs),BorderLayout.NORTH);
+			int size = playerFilters.size();
+			if (playerFilters.size() > 2){
+        		size += 2;
+        	}
+			Component[] c = new Component[size];
+			for (int t = 0; t < playerFilters.size(); t++) c[t] = playerFilters.elementAt(t);
+			if (allPlayers != null) c[c.length-2] = allPlayers;
+			if (noPlayers != null) c[c.length-1] = noPlayers;
+			filterPanel.add(createPanel(0, c),BorderLayout.NORTH);
 		}
 		private void calculateFleetInfo(){
 			totalFleetCount.clear();
@@ -567,6 +601,64 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				}
 	        }
 	        
+	        if (animatorFrame){ //Show Voronoi colors! :-D
+	        	g.setStroke(new BasicStroke(1f));
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+				
+	        	Vector<Point> points = new Vector<Point>();
+	        	Vector<Color> colors = new Vector<Color>();
+	        	int minx = Integer.MAX_VALUE;
+	        	int maxx = 0;
+	        	int miny = Integer.MAX_VALUE;
+	        	int maxy = 0;
+	        	for (Integer id : map.planetNames.keySet()){
+					String name = map.planetNames.get(id);
+					Point p = map.planetCoordinates.get(id);
+					PartialPlanetBlock planet = getPlanet(id, -2);
+					if (planet == null || planet.owner < 0) continue;
+					Color col = getColor(planet.owner);
+					col = new Color(col.getRed(),col.getGreen(),col.getBlue(),128);
+					int x = convertX(p.x);
+					int y = convertY(p.y);
+					x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
+					y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+					if (x > maxx) maxx = x;
+					if (x < minx) minx = x;
+					if (y > maxy) maxy = y;
+					if (y < miny) miny = y;
+			        points.addElement(new Point(x,y));
+			        colors.addElement(col);
+	        	}
+	        	int maxDistance = (int)(60.0 * zoom / 100.0);
+				for (int x = 0; x < getWidth(); x++) {
+					if (x + maxDistance < minx) continue;
+					if (x - maxDistance > maxx) continue;
+					for (int y = 0; y < getHeight(); y++) {
+						if (y + maxDistance < miny) continue;
+						if (y - maxDistance > maxy) continue;
+						Color col = null;
+						Double oldDistance = null;
+						for (int t = 0; t < points.size(); t++) {
+							Point p = points.elementAt(t);
+							Color c = colors.elementAt(t);
+							double distance = Voronoi.distance(p.x, x, p.y, y);
+							if (distance < maxDistance){
+								if (oldDistance == null || distance < oldDistance){
+									col = c;
+									oldDistance = distance;
+								}
+							}
+						}
+						if (col != null){
+							g.setColor(col);
+							g.drawLine(x,y,x,y);
+						}
+					}
+				}
+				g.setStroke(new BasicStroke(0.1f));
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	        }
+	        
 			for (Integer id : map.planetNames.keySet()){
 				String name = map.planetNames.get(id);
 				Point p = map.planetCoordinates.get(id);
@@ -756,6 +848,22 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			
 			for (Integer id : p.objects.keySet()){
 				ObjectBlock o = p.objects.get(id);
+				if (o.isWormhole() && showWormholes.isSelected()){
+					int x = convertX2(o.x,xOffset);
+					int y = convertY2(o.y,yOffset);
+					g.drawImage(wormholeImage, x - 4, y - 4, null);
+					g.drawString(""+o.wormholeId, x-2, y-6);
+					for (Integer id2 : p.objects.keySet()){
+						if (id == id2) continue;
+						ObjectBlock b = p.objects.get(id2);
+						if (b.isWormhole() && o.targetId == b.wormholeId){
+							int xx = convertX2(b.x,xOffset);
+							int yy = convertY2(b.y,yOffset);
+							g.setColor(new Color(255,0,255));
+							g.drawLine(x, y, xx, yy);
+						}
+					}
+				}
 				if (o.isMT() && showMt.isSelected()){ //Paint MT
 					//System.out.println(o.toString());
 					g.setFont(g.getFont().deriveFont((float)10));
@@ -888,6 +996,18 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			return map.maxY-y+10;
 		}
 		
+		private int convertX2(int x, int xOffset){
+			x = convertX(x);
+			x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
+			return x;
+		}
+		
+		private int convertY2(int y, int yOffset){
+			y = convertY(y);
+			y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+			return y;
+		}
+		
 		public void centerOnPoint(Point p) {
 			System.out.println("Trying to center on point "+p);
 			double x = (double)convertX(p.x);
@@ -938,6 +1058,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		else if (e.getSource() == showMinefields){
 			repaint();
 		}
+		else if (e.getSource() == showWormholes){
+			repaint();
+		}
 		else if (e.getSource() == gotoBigFleets){
 			gotoBigFleet();
 		}
@@ -946,6 +1069,13 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			showFilters.setText(filterPanel.isVisible()?"Hide filters":"Show filters");
 		}
 		else if (e.getSource() == nubians || e.getSource() == battleships || e.getSource() == others){
+			p.calculateFleetInfo();
+			repaint();
+		}
+		else if (e.getSource() == allPlayers || e.getSource() == noPlayers){
+			for (JCheckBox b : playerFilters){
+				b.setSelected(e.getSource() == allPlayers);
+			}
 			p.calculateFleetInfo();
 			repaint();
 		}
@@ -1018,6 +1148,31 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 	}
 	
+	/**
+	 * 12 first taken for warcraft answer at http://gamedev.stackexchange.com/questions/46463/how-can-i-find-an-optimum-set-of-colors-for-10-players
+	 */
+	public static List<Color> pickColors(int num){
+		List<Color> v = new ArrayList<Color>();
+		v.add(new Color(255,3,3));
+		v.add(new Color(0,66,255));
+		v.add(new Color(28,230,185));
+		v.add(new Color(84,0,129));
+		v.add(new Color(255,252,1));
+		v.add(new Color(254,138,14));
+		v.add(new Color(32,192,0));
+		v.add(new Color(229,91,176));
+		v.add(new Color(149,150,151));
+		v.add(new Color(126,191,241));
+		v.add(new Color(16,98,70));
+		v.add(new Color(78,42,4));
+		v.add(new Color(255,255,255));
+		v.add(new Color(187,115,20));
+		v.add(new Color(255,0,0));
+		v.add(new Color(255,0,0));
+		return v;
+	}
+	
+	/* Old way
 	public static List<Color> pickColors(int num) {
 		List<Color> colors = new ArrayList<Color>();
 		if (num < 2)
@@ -1061,6 +1216,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		}
 		return new Color(r, g, b);
 	}
+	*/
 	
 	/**
 	 * You first, then friends, and then enemies
@@ -1220,5 +1376,50 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		tp = new TexturePaint(img, new Rectangle(0, 0, 8, 8));
 		bufferedPatterns.put(key, tp);
 		return tp;
+	}
+	
+	private static BufferedImage getWormholeImage(){
+		BufferedImage i = new BufferedImage(9, 9, BufferedImage.TYPE_INT_ARGB);
+		int[][] image = {
+				{0,1,1,1,0,2,0,0,0},
+				{0,0,0,1,1,0,2,0,1},
+				{0,2,2,1,1,1,2,0,1},
+				{2,0,1,0,3,0,1,0,1},
+				{0,1,1,3,3,3,1,1,0},
+				{1,0,1,0,3,0,1,0,2},
+				{1,0,2,1,1,1,2,2,0},
+				{1,0,2,0,1,0,0,0,0},
+				{0,0,0,2,0,1,1,1,0},
+		};
+		for (int y = 0; y < 9; y++){
+			for (int x = 0; x < 9; x++){
+				switch(image[y][x]){
+				case 1:
+					i.setRGB(x, y, new Color(130,0,130).getRGB());
+					break;
+				case 2:
+					i.setRGB(x, y, new Color(255,0,255).getRGB());
+					break;
+				case 3:
+					i.setRGB(x, y, Color.black.getRGB());
+					break;
+				}
+			}
+		}
+		return i;
+	}
+
+	/**
+	 * Used in galaxyanimator when only planet info is relevant
+	 */
+	public void removeSomeInfo() {
+		enemyFleetInfo.clear();
+		friendlyFleetInfo.clear();
+		totalFleetCount.clear();
+		totalFleetCountByPlayer.clear();
+	}
+
+	public int getYear() {
+		return 2400+p.getGameTurn();
 	}
 }

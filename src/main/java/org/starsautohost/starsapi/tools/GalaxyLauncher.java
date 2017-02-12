@@ -50,7 +50,7 @@ public class GalaxyLauncher extends JFrame implements ActionListener{
 				if (tabs.getSelectedIndex() == 0){
 					gvs.update();
 					dispose();
-					new GalaxyViewer(gvs,false);
+					new GalaxyViewer(gvs,false,false);
 				}
 				else if (tabs.getSelectedIndex() == 1){
 					gas.update();

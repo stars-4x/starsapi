@@ -13,7 +13,7 @@ public class ObjectBlock extends Block {
     public int type; // 0 = minefield, 1 = packet/salvage, 2 = wormhole, 3 = MT
     public int x, y;
     
-    //For mt:
+    //For MT
     public int xDest, yDest;
     public int warp;
     public int metBits;
@@ -21,6 +21,9 @@ public class ObjectBlock extends Block {
     public int turnNo;
     //For minefields
     public long mineCount;
+    //For wormholes
+    public int wormholeId;
+    public int targetId;
     
 	public ObjectBlock() {
 		typeId = BlockType.OBJECT;
@@ -99,14 +102,25 @@ public class ObjectBlock extends Block {
 			metBits = Util.read16(decryptedData, 12);
 			itemBits = Util.read16(decryptedData, 14);
 			turnNo = Util.read16(decryptedData, 16);
-			System.out.println(toStringMt());
-			System.out.println(getMetPlayers());
+			//System.out.println(toStringMt());
+			//System.out.println(getMetPlayers());
 			//System.out.println(toString());
 	    }
 	    else if (isMinefield()){
 	    	x = Util.read16(decryptedData, 2);
 			y = Util.read16(decryptedData, 4);
 			mineCount = Util.read32(decryptedData, 6);
+	    }
+	    else if (isWormhole()){
+	    	x = Util.read16(decryptedData, 2);
+			y = Util.read16(decryptedData, 4);
+			wormholeId = Util.read16(decryptedData, 0) % 4096;
+			targetId = Util.read16(decryptedData, 12) % 4096;
+			int beenThrough = Util.read16(decryptedData, 8);
+			int canSee = Util.read16(decryptedData, 10);
+			//System.out.println(wormholeId+" "+targetId+" "+x+" "+y);
+			//System.out.println(Integer.toBinaryString(beenThrough));
+			//System.out.println(Integer.toBinaryString(canSee));
 	    }
 	}
 	

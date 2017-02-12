@@ -1,6 +1,9 @@
 package org.starsautohost.starsapi.block;
 
 public class PlayerBlock extends Block {
+	
+	public static boolean ignoreParseErrors = false;
+	
     public static class PRT {
         public static int HE = 0;
         public static int SS = 1;
@@ -71,7 +74,11 @@ public class PlayerBlock extends Block {
 	    nameBytes = new byte[index - namesStart];
 	    System.arraycopy(decryptedData, namesStart, nameBytes, 0, nameBytes.length);
 	    if (index != size) {
-	        throw new Exception("Unexpected player data size: " + this);
+	    	String error = "Unexpected player data size: " + this;
+	    	error += "\nPlayer nr: "+playerNumber;
+	    	error += "\nBlock size: "+fullDataBytes.length;
+	    	if (ignoreParseErrors) System.out.println(error);
+	    	else throw new Exception(error);
 	    }
 	}
 

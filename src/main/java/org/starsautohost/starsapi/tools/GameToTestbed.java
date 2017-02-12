@@ -1141,4 +1141,7 @@ public class GameToTestbed {
         new Decryptor().writeBlocks(hFileName, blocks, false);
     }
 
+    public int getGameTurn(){
+    	return gameTurn;
+    }
 }
