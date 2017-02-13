@@ -84,7 +84,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 			dir = new JTextField(""+directory);
 			start = new JTextField(""+startFrame);
 			max = new JTextField(""+maxFrames);
-			voronoi = new JCheckBox("Paint voronoi (computational expensive)");
+			voronoi = new JCheckBox("Paint voronoi (computational expensive)",paintVoronoi);
 			JButton selectDir = new JButton("...");
 			selectDir.addActionListener(new SelectDirectory(gName,dir));
 			JPanel p = new JPanel();

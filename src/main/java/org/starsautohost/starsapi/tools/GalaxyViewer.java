@@ -1440,12 +1440,14 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 
 	/**
 	 * Used in galaxyanimator when only planet info is relevant
+	 * Will free up memory.
 	 */
 	public void removeSomeInfo() {
 		enemyFleetInfo.clear();
 		friendlyFleetInfo.clear();
 		totalFleetCount.clear();
 		totalFleetCountByPlayer.clear();
+		p.files.clear();
 	}
 
 	public int getYear() {
