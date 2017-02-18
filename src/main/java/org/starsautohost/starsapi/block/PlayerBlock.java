@@ -76,10 +76,11 @@ public class PlayerBlock extends Block {
 	    if (index != size) {
 	    	String error = "Unexpected player data size: " + this;
 	    	error += "\nPlayer nr: "+playerNumber;
-	    	error += "\nBlock size: "+fullDataBytes.length;
+	    	error += "\nBlock size: "+(fullDataBytes!=null?fullDataBytes.length:0);
 	    	if (ignoreParseErrors) System.out.println(error);
 	    	else throw new Exception(error);
 	    }
+	    //System.out.println("Index: "+index);
 	}
 
 	@Override

@@ -27,6 +27,9 @@ public class HFileMerger {
             if (arg.equalsIgnoreCase("-help") || arg.equalsIgnoreCase("--help")) {
                 return true;
             }
+            if (arg.equalsIgnoreCase("-ignoreParseErrors")){
+            	PlayerBlock.ignoreParseErrors = true;
+            }
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("-h")) return true;
         return false;
@@ -61,11 +64,13 @@ public class HFileMerger {
     
     public void run(String[] args) throws Exception {
         for (String filename : args) {
+        	if (filename.startsWith("-")) continue;
             List<Block> blocks;
             try {
                 blocks = new Decryptor().readFile(filename);
                 files.put(filename, blocks);
             } catch (Exception e) {
+            	e.printStackTrace();
                 System.out.println("Unable to parse file " + filename + ": " + e);
                 return;
             }
@@ -80,6 +85,7 @@ public class HFileMerger {
         postProcess();
         
         for (String filename : args) {
+        	if (filename.startsWith("-")) continue;
             outProcessFile(filename);
         }
     }

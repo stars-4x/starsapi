@@ -8,8 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import org.starsautohost.starsapi.block.Block;
-import org.starsautohost.starsapi.block.PlayerBlock;
+import org.starsautohost.starsapi.block.*;
 import org.starsautohost.starsapi.encryption.Decryptor;
 
 /**
@@ -38,13 +37,13 @@ public class GetPassword {
 			Vector<File> v = new Vector<File>();
 			for (File ff : files){
 				String name = ff.getName().toLowerCase();
-				if (name.matches(".*\\.[m|M].") || name.matches(".*\\.[r|R].")){
+				if (name.matches(".*\\.[x|X].") || name.matches(".*\\.[r|R].")){
 					v.addElement(ff);
 					System.out.println(v.size()+": "+ff.getName());
 				}
 			}
 			if (v.size() == 0){
-				System.out.println("No R or M-files in directory.");
+				System.out.println("No R or X-files in directory.");
 				System.exit(0);
 			}
 			System.out.println("Enter the number for the file you want.");
@@ -56,15 +55,25 @@ public class GetPassword {
 		}
 		List<Block> v1 = new Decryptor().readFile(f.getAbsolutePath());
 		PlayerBlock pb = null;
+		ChangePasswordBlock cpb = null;
 		for (Block b : v1){
 			if (b instanceof PlayerBlock) pb = (PlayerBlock)b;
+			if (b instanceof ChangePasswordBlock) cpb = (ChangePasswordBlock)b;
 		}
-		if (pb == null){
-			System.out.println("Could not find an instance of PlayerBlock in given file.");
+		if (pb == null && cpb == null){ // && cpb == null){
+			System.out.println("Could not find an instance of PlayerBlock or ChangePasswordBlock in given file.");
 			System.exit(0);
 		}
-		byte[] b = pb.getDecryptedData();
-		int i = ((b[15]&0xff) << 24) | ((b[14]&0xff) << 16) | ((b[13]&0xff) << 8)  | (b[12]&0xff);
+		int i;
+		if (cpb != null){
+			byte[] b = cpb.getDecryptedData();
+			i = ((b[3]&0xff) << 24) | ((b[2]&0xff) << 16) | ((b[1]&0xff) << 8)  | (b[0]&0xff);
+		}
+		else{
+			byte[] b = pb.getDecryptedData();
+			i = ((b[15]&0xff) << 24) | ((b[14]&0xff) << 16) | ((b[13]&0xff) << 8)  | (b[12]&0xff);
+		}
+		
 		System.out.println("Printing hash value (target for brute force search)");
 		System.out.println(i + " " + Integer.toBinaryString(i)+" ("+Integer.toBinaryString(i).length()+")");
 		System.out.println("Starting");
