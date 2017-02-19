@@ -613,8 +613,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	        	g.setStroke(new BasicStroke(1f));
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 				
-	        	Vector<Point> points = new Vector<Point>();
-	        	Vector<Integer> owners = new Vector<Integer>();
+				int totalPoints = 0;
+	        	Vector[] points = new Vector[16];
+	        	for (int t = 0; t < points.length; t++) points[t] = new Vector<Point>();
 	        	int minx = Integer.MAX_VALUE;
 	        	int maxx = 0;
 	        	int miny = Integer.MAX_VALUE;
@@ -634,10 +635,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					if (x < minx) minx = x;
 					if (y > maxy) maxy = y;
 					if (y < miny) miny = y;
-			        points.addElement(new Point(x,y));
-			        owners.addElement(planet.owner);
+			        points[planet.owner].addElement(new Point(x,y));
+			        totalPoints++;
 	        	}
-	        	System.out.println("Calculating Voronoi for "+points.size()+" planets.");
+	        	System.out.println("Calculating Voronoi for "+totalPoints+" planets.");
 	        	long time = System.currentTimeMillis();
 	        	int maxDistance = (int)(60.0 * zoom / 100.0);
 	        	BufferedImage[] map = new BufferedImage[16];
@@ -647,14 +648,16 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	        		gs[t] = map[t].createGraphics();
 	        		gs[t].setColor(Color.white);
 	        	}
-	        	for (int t = 0; t < points.size(); t++){
-	        		Point p = points.elementAt(t);
-	        		int owner = owners.elementAt(t);
-	        		gs[owner].fillOval(p.x-maxDistance, p.y-maxDistance, maxDistance, maxDistance);
+	        	for (int owner = 0; owner < points.length; owner++){
+	        		for (int t = 0; t < points[owner].size(); t++){
+	        			Point p = (Point)points[owner].elementAt(t);
+	        			gs[owner].fillOval(p.x-maxDistance, p.y-maxDistance, maxDistance*2, maxDistance*2);
+	        		}
 	        	}
-	        	//System.out.println(System.currentTimeMillis()-time);
+	        	System.out.println("Precalculations: "+(System.currentTimeMillis()-time));
 	        	
 	        	//HashMap<int,Vector<>>>
+	        	int count0 = 0, count1 = 0, countx = 0;
 				for (int x = 0; x < getWidth(); x++) {
 					int maxX = x + maxDistance;
 					int minX = x - maxDistance;
@@ -668,30 +671,41 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						
 						int count = 0;
 						Color col = null;
+						boolean[] b = new boolean[16];
 						for (int t = 0; t < 16; t++){
 							int i = map[t].getRGB(x,y);
 							if (i == -1){
+								b[t] = true;
 								count++;
 								col = GalaxyViewer.this.weakColors.get(t);
 							}
 						}
-						if (count == 0 && false) continue;
-						if (count > 1 || true){
+						if (count == 0){
+							count0++;
+							continue;
+						}
+						else if (count > 1){
 							Double oldDistance = null;
-							for (int t = 0; t < points.size(); t++) {
-								Point p = points.elementAt(t);
-								int owner = owners.elementAt(t);
-								Color c = weakColors.get(owner);
-								//if (p.x > maxX || p.x < minX) continue;
-								//if (p.y > maxY || p.y < minY) continue;
-								double distance = Voronoi.distance(p.x, x, p.y, y);
-								if (distance < maxDistance){
-									if (oldDistance == null || distance < oldDistance){
-										col = c;
-										oldDistance = distance;
+							for (int owner = 0; owner < points.length; owner++){
+								if (b[owner] == false) continue; //Not one of this owners planets are in range of current point
+								for (int t = 0; t < points[owner].size(); t++) {
+									Point p = (Point)points[owner].elementAt(t);
+									Color c = weakColors.get(owner);
+									//if (p.x > maxX || p.x < minX) continue;
+									//if (p.y > maxY || p.y < minY) continue;
+									double distance = Voronoi.distance(p.x, x, p.y, y);
+									if (distance < maxDistance){
+										if (oldDistance == null || distance < oldDistance){
+											col = c;
+											oldDistance = distance;
+										}
 									}
 								}
 							}
+							countx++;
+						}
+						else{
+							count1++;
 						}
 						if (col != null){
 							g.setColor(col);
@@ -702,6 +716,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				g.setStroke(new BasicStroke(0.1f));
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				System.out.println("Voronoi time: "+(System.currentTimeMillis()-time)); //16,5, 18,7
+				System.out.println("Count0:"+count0);
+				System.out.println("Count1:"+count1);
+				System.out.println("Countx:"+countx);
 	        }
 	        
 			for (Integer id : map.planetNames.keySet()){
