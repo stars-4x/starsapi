@@ -71,13 +71,18 @@ public class PlayerBlock extends Block {
 	    index += singularNameLength;
 	    int pluralNameLength = decryptedData[index++] & 0xFF;
 	    index += pluralNameLength;
+	    if (pluralNameLength == 0) index++; //Fix for empty plural name.
 	    nameBytes = new byte[index - namesStart];
 	    System.arraycopy(decryptedData, namesStart, nameBytes, 0, nameBytes.length);
 	    if (index != size) {
 	    	String error = "Unexpected player data size: " + this;
-	    	error += "\nPlayer nr: "+playerNumber;
-	    	error += "\nBlock size: "+(fullDataBytes!=null?fullDataBytes.length:0);
-	    	if (ignoreParseErrors) System.out.println(error);
+	    	error += "\nIndex: "+index+", size: "+size;
+	    	error += "\nPlayer nr: "+playerNumber+", "+org.starsautohost.starsapi.Util.decodeBytesForStarsString(nameBytes);
+	    	error += "\nBlock size: "+(decryptedData != null ? decryptedData.length : 0);
+	    	if (ignoreParseErrors){
+	    		System.out.println(error);
+	    		System.out.println("Continuing anyway");
+	    	}
 	    	else throw new Exception(error);
 	    }
 	    //System.out.println("Index: "+index);
