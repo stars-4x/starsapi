@@ -97,6 +97,9 @@ public class HFileMerger {
             PartialPlanetBlock pblock = planetInfo.merge();
             planetBlocks.add(pblock);
             if (pblock.owner >= 0 && players[pblock.owner] != null) players[pblock.owner].planets++;
+            if (pblock.hasStarbase && starbaseDesigns[pblock.owner][pblock.starbaseDesign] == null) {
+                System.out.println("Warning, starbase omitted from planet " + pblock.planetNumber + " due to missing starbase design for player " + pblock.owner);
+            }
         }
         for (int player = 0; player < 16; player++) {
             for (int designNumber = 0; designNumber < 16; designNumber++) {
@@ -128,9 +131,17 @@ public class HFileMerger {
         newBlocks.add(blocks.get(0));
         newBlocks.add(blocks.get(1));
         for (Block block : planetBlocks) {
-            block.encode();
+            PartialPlanetBlock planetBlock = (PartialPlanetBlock) Block.copy(block);
+            if (planetBlock.hasStarbase &&
+                planetBlock.owner != filePlayerNumber &&
+                starbaseDesigns[planetBlock.owner][planetBlock.starbaseDesign] == null) {
+                // this planet came from a merged-in H file but we've never seen the starbase;
+                // delete the starbase
+                planetBlock.hasStarbase = false;
+            }
+            planetBlock.encode();
+            newBlocks.add(planetBlock);
         }
-        newBlocks.addAll(planetBlocks);
         boolean donePlayersAndDesigns = false;
         for (int blockNumber = 2; blockNumber < blocks.size(); blockNumber++) {
             Block block = blocks.get(blockNumber);
