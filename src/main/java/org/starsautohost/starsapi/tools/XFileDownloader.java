@@ -80,7 +80,7 @@ public class XFileDownloader {
 			String date = s.substring(i+7).split("<")[0];
 			if (date.equals("<TIME_UL>")) date = "";
 			if (date.equals("") == false){
-				if (dates[nr-1].equals(date)){
+				if (dates[nr-1] != null && dates[nr-1].equals(date)){
 					System.out.println("No changes for player "+nr);
 				}
 				else{

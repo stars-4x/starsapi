@@ -58,6 +58,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JButton showFilters = new JButton("Show filters");
 	private JTextField massFilter = new JTextField();
 	private JCheckBox nubians = new JCheckBox("Nubians",true);
+	private JCheckBox dreadNoughts = new JCheckBox("Dreadnoughts",true);
 	private JCheckBox battleships = new JCheckBox("Battleships",true);
 	private JCheckBox others = new JCheckBox("Others",true);
 	private JCheckBox showMt = new JCheckBox("MT",true);
@@ -193,7 +194,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		south.add(filterPanel,BorderLayout.CENTER);
 		south.add(s,BorderLayout.SOUTH);
 		filterPanel.setVisible(false);
-		filterPanel.add(createPanel(0, new JLabel("Mass-filter: "),massFilter,new JLabel("  "),nubians,battleships,others),BorderLayout.CENTER);
+		filterPanel.add(createPanel(0, new JLabel("Mass-filter: "),massFilter,new JLabel("  "),nubians,dreadNoughts,battleships,others),BorderLayout.CENTER);
 		search.setPreferredSize(new Dimension(100,-1));
 		massFilter.setPreferredSize(new Dimension(75,-1));
 		cp.add(south,BorderLayout.SOUTH);
@@ -204,6 +205,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		showFleets.addActionListener(this);
 		gotoBigFleets.addActionListener(this);
 		showFilters.addActionListener(this);
+		dreadNoughts.addActionListener(this);
 		nubians.addActionListener(this);
 		battleships.addActionListener(this);
 		others.addActionListener(this);
@@ -223,6 +225,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		gotoBigFleets.addKeyListener(this);
 		showFilters.addKeyListener(this);
 		nubians.addKeyListener(this);
+		dreadNoughts.addKeyListener(this);
 		battleships.addKeyListener(this);
 		others.addKeyListener(this);
 		showMt.addKeyListener(this);
@@ -1130,7 +1133,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			filterPanel.setVisible(!filterPanel.isVisible());
 			showFilters.setText(filterPanel.isVisible()?"Hide filters":"Show filters");
 		}
-		else if (e.getSource() == nubians || e.getSource() == battleships || e.getSource() == others){
+		else if (e.getSource() == nubians || e.getSource() == dreadNoughts || e.getSource() == battleships || e.getSource() == others){
 			p.calculateFleetInfo();
 			repaint();
 		}
@@ -1368,6 +1371,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				if (f.shipCount[t] == 0) continue;
 				if (pi.shipDesignBlocks[t].hullId == 29){ //28 seems to be sml
 					if (nubians.isSelected() == false) continue;
+				}
+				else if (pi.shipDesignBlocks[t].hullId == 10){
+					if (dreadNoughts.isSelected() == false) continue;
 				}
 				else if (pi.shipDesignBlocks[t].hullId == 9){
 					if (battleships.isSelected() == false) continue;
