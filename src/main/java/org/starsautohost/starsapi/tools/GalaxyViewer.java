@@ -76,6 +76,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private static HashMap<String,TexturePaint> bufferedPatterns = new HashMap<String,TexturePaint>();
 	private static BufferedImage wormholeImage = getWormholeImage();
 	private int year = -1;
+	private boolean forceVoronoi = false;
+	private boolean mayRevealPartName = false;
 	
 	public static void main(String[] args) throws Exception{
 		try{
@@ -202,6 +204,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		names.addActionListener(this);
 		zoomSlider.addChangeListener(this);
 		colorize.addActionListener(this);
+		colorize.setToolTipText("Right-click to toggle voronoi");
 		showFleets.addActionListener(this);
 		gotoBigFleets.addActionListener(this);
 		showFilters.addActionListener(this);
@@ -210,6 +213,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		battleships.addActionListener(this);
 		others.addActionListener(this);
 		showMt.addActionListener(this);
+		showMt.addMouseListener(new RightClickListener());
+		showMt.setToolTipText("<html>Right-click to toggle part info<br>Notice that this may or may be not allowed in your current game!<br>If in doubt, ask your host.</html>");
 		showMinefields.addActionListener(this);
 		showWormholes.addActionListener(this);
 		allPlayers.addActionListener(this);
@@ -221,6 +226,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		names.addKeyListener(this);
 		zoomSlider.addKeyListener(this);
 		colorize.addKeyListener(this);
+		colorize.addMouseListener(new RightClickListener());
 		showFleets.addKeyListener(this);
 		gotoBigFleets.addKeyListener(this);
 		showFilters.addKeyListener(this);
@@ -446,7 +452,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
     */
 	
 	private void calculateColors(){
-		if (animatorFrame){
+		if (animatorFrame || forceVoronoi){
 			List<Color> distinctColors = pickColors(16);
 			for (int t = 0; t < distinctColors.size(); t++){
 				Color col = distinctColors.get(t);
@@ -612,7 +618,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				}
 	        }
 	        
-	        if (paintVoronoi){ //Show Voronoi colors! :-D
+	        if (paintVoronoi || (forceVoronoi && colorize.isSelected())){ //Show Voronoi colors! :-D
 	        	g.setStroke(new BasicStroke(1f));
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 				
@@ -959,12 +965,13 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						g.fillPolygon(mt);
 						g.setStroke(new BasicStroke(0.1f));
 						g.drawLine(x,y,xd,yd);
-						//Do NOT comment in the following unless it is determined that part name may be revealed.
-						//String type = o.getMTPartName();
-						//int stringWidth = g.getFontMetrics().stringWidth(type);
-						//makeTransparent(g);
-						//g.drawString(type, x-stringWidth/2, y-10);
-						//makeOpaque(g);
+						if (mayRevealPartName){
+							String type = o.getMTPartName();
+							int stringWidth = g.getFontMetrics().stringWidth(type);
+							makeTransparent(g);
+							g.drawString(type, x-stringWidth/2, y-10);
+							makeOpaque(g);
+						}
 					}
 				}
 			}
@@ -1518,5 +1525,41 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 
 	public int getYear() {
 		return 2400+p.getGameTurn();
+	}
+	
+	private class RightClickListener extends MouseAdapter implements ActionListener{
+		private JMenuItem i1 = null, i2 = null;
+		public void mouseReleased(MouseEvent e){
+			if (e.getButton() != MouseEvent.BUTTON1){
+				if (e.getSource() == colorize){
+					JPopupMenu pop = new JPopupMenu();
+					i1 = new JMenuItem(forceVoronoi?"Disable Voronoi":"<html>Toggle Voronoi (computational expensive)<br>Each repaint may take 10 seconds or more, so use it cautiously.<br>Eg turn it on, take a screenshot and turn it off.</html>");
+					if (colorize.isSelected() == false) i1.setText("Check colorize before toggling Voronoi");
+					i1.addActionListener(this);
+					pop.add(i1);
+					pop.show((Component)e.getSource(),e.getX(),e.getY());
+				}
+				else if (e.getSource() == showMt){
+					JPopupMenu pop = new JPopupMenu();
+					i2 = new JMenuItem(mayRevealPartName?"Hide MT Parts":"<html>Show MT Parts<br>Notice that this may or may be not allowed in your current game!<br>If in doubt, ask your host.</html>");
+					i2.addActionListener(this);
+					pop.add(i2);
+					pop.show(showMt,e.getX(),e.getY());
+				}
+			}
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (e.getSource() == i1){
+				forceVoronoi = !forceVoronoi;
+				if (forceVoronoi) calculateColors();
+				repaint();
+			}
+			else if (e.getSource() == i2){
+				mayRevealPartName = !mayRevealPartName;
+				repaint();
+			}
+		}
 	}
 }
