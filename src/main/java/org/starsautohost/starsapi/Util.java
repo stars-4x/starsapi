@@ -147,7 +147,7 @@ public class Util {
 	 * @param text
 	 * @return
 	 */
-	private static String encodeHexForStarsText(String text) {
+	public static String encodeHexStarsString(String text) {
 		StringBuilder hexChars = new StringBuilder();
 
 		// Loop through each hex char; should be all capitalized
@@ -214,8 +214,8 @@ public class Util {
 	 * @param s
 	 * @return
 	 */
-	public static byte[] encodeTextForStarsString(String s) {
-		String hexChars = encodeHexForStarsText(s);
+	public static byte[] encodeStarsString(String s) {
+		String hexChars = encodeHexStarsString(s);
 
 		// Require multiple of 2 bytes and append an 'F' to make it so
 		if (hexChars.length() % 2 != 0) 
@@ -233,76 +233,13 @@ public class Util {
 	}
 
 	/**
-	 * Encode the given text into Stars! message format.
-	 * 
-	 * This format can use two encodings: Stars! text encoding or ASCII,
-	 * depending on which is larger.
-	 * 
-	 * @param text
-	 * @return
-	 */
-	public static byte[] encodeTextForStarsMessage(String text) {
-		// Encode string using Stars! encoding
-		String hexChars = encodeHexForStarsText(text);
-
-		// Require multiple of 2 bytes and append an 'F' to make it so
-		if (hexChars.length() % 2 != 0) 
-			hexChars = hexChars + "F";
-
-		int starsEncByteLen = hexChars.length() / 2;
-
-		// Header is the byte length as 10 bits
-		int header = starsEncByteLen & 0x3ff;
-
-		// Get ASCII encoding info
-		byte[] textBytes = text.getBytes();
-		int asciiByteLen = textBytes.length;  
-
-		// If ASCII results in a shorter byte size than Stars! encoding, ASCII
-		// will be used instead. Modify the header and hexChars accordingly
-		if(asciiByteLen < starsEncByteLen) {  // Compare nibble counts
-			// Header should really be the ASCII length
-			header = asciiByteLen & 0x3ff;  // 10 bits
-
-			// Now invert all bits which puts all 1's in the top 6 bits to tell
-			// the decoder if ASCII was used
-			header = ~(header) & 0xffff;  // 16 bits
-
-			// Use ASCII chars instead
-			hexChars = byteArrayToHex(textBytes);
-		}
-
-		// Build header as hex nibbles, 2 bytes total
-		String lowerByte = byteToHex((byte) (header & 0xff));
-		String upperByte = byteToHex((byte) ((header & 0xff00) >> 8));
-
-		// Prepend header to message, as 4 hex characters
-		hexChars = (lowerByte + upperByte) + hexChars;
-
-		// Debugging
-		// Messages require a multiple of 4 bytes (8 nibbles) because of the
-		// encryption. Append dummy values to test
-//		int padLen = hexChars.length() % 8;
-//		for(int i = 0; i < padLen; i++) 
-//			// Stars! normally just leaves junk memory as padding at the end of
-//			// the array. 
-//			// A '6' adds 'n' (Stars!) or 'f' (ASCII). Useful for debugging
-//			hexChars = hexChars.concat("6");  
-
-		// Create byte array to hold header and message
-		byte[] res = hexToByteArray(hexChars);
-
-		return res;
-	}
-
-	/**
 	 * Decode a sequence of hex characters that are ASCII encoded
 	 * 
 	 * @param hexChars
 	 * @param byteSize
 	 * @return
 	 */
-	private static String decodeHexForAsciiText(String hexChars, int byteSize) {
+	public static String decodeHexAscii(String hexChars, int byteSize) {
 		StringBuffer result = new StringBuffer();
 
 		// Keep track of what byte we're at for certain checks
@@ -337,7 +274,7 @@ public class Util {
 	 * @param hexChars
 	 * @return
 	 */
-	private static String decodeHexForStarsText(String hexChars, int byteSize)
+	public static String decodeHexStarsString(String hexChars, int byteSize)
 	{
 		StringBuffer result = new StringBuffer();
 
@@ -406,41 +343,6 @@ public class Util {
 	}
 
 	/**
-	 * Decode a byte array from a Stars! message.
-	 * 
-	 * @param res
-	 * @return
-	 */
-	public static String decodeBytesForStarsMessage(byte[] res) {
-		// First 2 bytes contain message header
-		int header = read16(res, 0);
-
-		// Lower 10 bits, this means 1023 max message bytesize!
-		int byteSize = (header & 0x3ff);   
-		int asciiIndicator = header >> 10; // Upper 6 bits
-
-		// If the top 6 bits are all 1's, then the entire message is ASCII
-		// encoded instead of Stars! encoded and the bytesize bits are inverted
-		boolean useAscii = false;
-		if(asciiIndicator == 0x3f) {
-			useAscii = true;
-			byteSize = (~byteSize & 0x3ff);
-		}
-
-		// Convert byte array to hex string, stripping off first 2 header bytes
-		byte[] textBytes = subArray(res, 2);
-		String hexChars = byteArrayToHex(textBytes);
-
-		String decoded = "Error decoding message";
-		if(useAscii)
-			decoded = decodeHexForAsciiText(hexChars, byteSize);
-		else
-			decoded = decodeHexForStarsText(hexChars, byteSize);
-
-		return decoded;
-	}
-
-	/**
 	 * Decode a byte array containing Stars-encoded text.
 	 * 
 	 * This is the general case for most (all?) text encoded byte arrays, other
@@ -449,7 +351,7 @@ public class Util {
 	 * @param res
 	 * @return
 	 */
-	public static String decodeBytesForStarsString(byte[] res) {
+	public static String decodeStarsString(byte[] res) {
 		// First byte is string byte size
 		int byteSize = res[0];
 
@@ -458,7 +360,7 @@ public class Util {
 		String hexChars = byteArrayToHex(textBytes);
 
 		// Decode hex string into original text
-		String decoded = decodeHexForStarsText(hexChars, byteSize);
+		String decoded = decodeHexStarsString(hexChars, byteSize);
 
 		return decoded;
 	}
@@ -469,7 +371,7 @@ public class Util {
 	 * @param b
 	 * @return
 	 */
-	private static String byteToHex(byte b) {
+	public static String byteToHex(byte b) {
 		int i = (b & 0xff);  // Java has only signed types - force to int
 
 		// Convert
@@ -507,7 +409,7 @@ public class Util {
 	 * @param hexChars
 	 * @return
 	 */
-	private static byte[] hexToByteArray(String hexChars) {
+	public static byte[] hexToByteArray(String hexChars) {
 		// Create byte array to hold header and message
 		byte[] res = new byte[(hexChars.length() / 2)];
 

@@ -1,5 +1,7 @@
 package org.starsautohost.starsapi;
 
+import org.starsautohost.starsapi.block.MessageBlock;
+
 public class TestTextEncoding {
 
 	/**
@@ -87,8 +89,8 @@ public class TestTextEncoding {
 	
 	private static void runMessageTest(String theString) {
 		// Run test as though it was a message
-		byte[] encoded = Util.encodeTextForStarsMessage(theString);
-		String decoded = Util.decodeBytesForStarsMessage(encoded);
+		byte[] encoded = MessageBlock.encodeStarsMessage(theString);
+		String decoded = MessageBlock.decodeStarsMessage(encoded);
 		
 		if(decoded.equals(theString))
 			System.out.println("PASSED msg");
@@ -98,8 +100,8 @@ public class TestTextEncoding {
 	
 	private static void runStringTest(String theString) {
 		// Run encode-decode test as though it was a general Stars! string
-		byte[] encoded = Util.encodeTextForStarsString(theString);
-		String decoded = Util.decodeBytesForStarsString(encoded);
+		byte[] encoded = Util.encodeStarsString(theString);
+		String decoded = Util.decodeStarsString(encoded);
 		
 		if(decoded.equals(theString))
 			System.out.println("PASSED str");
