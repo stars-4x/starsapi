@@ -347,7 +347,7 @@ public class DesignBlock extends Block {
             }
             designBlock.slots.add(slotInfo);
         }
-        designBlock.nameBytes = Util.encodeTextForStarsString(name);
+        designBlock.nameBytes = Util.encodeStarsString(name);
         designBlock.encode();
         return designBlock;
     }
