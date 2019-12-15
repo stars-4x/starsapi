@@ -24,6 +24,8 @@ import org.starsautohost.starsapi.block.FileHeaderBlock;
 import org.starsautohost.starsapi.block.FleetNameBlock;
 import org.starsautohost.starsapi.block.MessageBlock;
 import org.starsautohost.starsapi.block.ObjectBlock;
+import org.starsautohost.starsapi.block.ObjectBlock.CountObject;
+import org.starsautohost.starsapi.block.ObjectBlock.WormholeObject;
 import org.starsautohost.starsapi.block.PartialFleetBlock;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
 import org.starsautohost.starsapi.block.PlayerBlock;
@@ -301,9 +303,14 @@ public class MFileMerger {
 
         private void doObjects(List<Block> newBlocks) throws Exception {
             if (objects.size() == 0) return;
+            // Create count object block first
             ObjectBlock counter = new ObjectBlock();
-            counter.count = objects.size();
+            counter.createSubObject(CountObject.class);
+            ((CountObject)counter.subObject).count = objects.size();
+            
             counter.encode();
+            
+            // Add count object and all other map objects
             newBlocks.add(counter);
             newBlocks.addAll(objects.values());
         }
@@ -349,11 +356,13 @@ public class MFileMerger {
                 if (block instanceof ObjectBlock) {
                     ObjectBlock oblock = (ObjectBlock)block;
                     if (oblock.isCounter()) continue;
-                    if (oblock.isWormhole() && oblock.isWormholeBeenThrough(playerMask)) {
-                        oblock.setWormholeBeenThrough(playerMask);
+                    if (oblock.isWormhole()) {
+                    	WormholeObject wo = (WormholeObject) oblock.subObject; 
+                    	if(wo.isWormholeBeenThrough(playerMask))
+                    		wo.setWormholeBeenThrough(playerMask);
                         // no need to encode
                     }
-                    objects.put(oblock.getObjectId(), oblock);
+                    objects.put(oblock.getMapObjectId(), oblock);
                 }
             }
         }
@@ -543,13 +552,19 @@ public class MFileMerger {
         }
         
         private void processObjectBlock(ObjectBlock object) throws Exception {
-            if (object.isCounter()) return;
-            if (object.isWormhole() && object.isWormholeBeenThrough(playerMask)) {
-                object = (ObjectBlock) Block.copy(object);
-                object.setWormholeBeenThrough(playerMask);
-                // no need to encode
+            // Skip Count object
+            if (object.isCounter()) 
+            	return;
+            if (object.isWormhole()) {
+            	WormholeObject wo = (WormholeObject) object.subObject;
+            	if(wo.isWormholeBeenThrough(playerMask)) {
+            		object = (ObjectBlock) Block.copy(object);
+            		wo = (WormholeObject) object.subObject;
+            		wo.setWormholeBeenThrough(playerMask);
+            		// no need to encode
+            	}
             }
-            objects.put(object.getObjectId(), object);
+            objects.put(object.getMapObjectId(), object);
         }
     }
     

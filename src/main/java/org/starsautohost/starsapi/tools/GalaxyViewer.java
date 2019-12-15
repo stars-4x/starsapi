@@ -15,6 +15,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.starsautohost.starsapi.Util;
 import org.starsautohost.starsapi.block.*;
+import org.starsautohost.starsapi.block.ObjectBlock.MinefieldObject;
+import org.starsautohost.starsapi.block.ObjectBlock.MysterTraderObject;
+import org.starsautohost.starsapi.block.ObjectBlock.WormholeObject;
 import org.starsautohost.starsapi.encryption.Decryptor;
 import org.starsautohost.starsapi.tools.GameToTestbed.FleetInfo;
 import org.starsautohost.starsapi.tools.GameToTestbed.PlanetInfo;
@@ -572,9 +575,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	        	for (Integer id : p.objects.keySet()){
 					ObjectBlock o = p.objects.get(id);
 					if (o.isMinefield()){
-						int x = convertX(o.x);
-						int y = convertY(o.y);
-						double r = Math.sqrt(o.mineCount);
+						MinefieldObject mfo = (MinefieldObject) o.subObject;
+						int x = convertX(mfo.x);
+						int y = convertY(mfo.y);
+						double r = Math.sqrt(mfo.mineCount);
 						x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 						y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
 						int rx = (int)(r*zoom/100.0);
@@ -582,29 +586,29 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						
 						TexturePaint tp = null;
 						
-						if (o.owner == settings.playerNr){
-							if (o.isMinefieldDetonating()){
+						if (mfo.owner == settings.playerNr){
+							if (mfo.isMinefieldDetonating()){
 								tp = getMinefieldPattern(0, new Color(255,0,255));
 							}
 							else{
-								tp = getMinefieldPattern(o.getMinefieldType(), Color.white);
+								tp = getMinefieldPattern(mfo.getMinefieldType(), Color.white);
 							}
 						}
 						else{
-							if (friends.contains(o.owner)){
-								if (o.isMinefieldDetonating()){
+							if (friends.contains(mfo.owner)){
+								if (mfo.isMinefieldDetonating()){
 									tp = getMinefieldPattern(0, new Color(255,0,255));
 								}
 								else{
-									tp = getMinefieldPattern(o.getMinefieldType(), Color.yellow);
+									tp = getMinefieldPattern(mfo.getMinefieldType(), Color.yellow);
 								}
 							}
 							else{
-								if (o.isMinefieldDetonating()){
+								if (mfo.isMinefieldDetonating()){
 									tp = getMinefieldPattern(0, new Color(255,0,155));
 								}
 								else{
-									tp = getMinefieldPattern(o.getMinefieldType(), Color.red);
+									tp = getMinefieldPattern(mfo.getMinefieldType(), Color.red);
 								}
 							}
 							
@@ -920,28 +924,34 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			for (Integer id : p.objects.keySet()){
 				ObjectBlock o = p.objects.get(id);
 				if (o.isWormhole() && showWormholes.isSelected()){
-					int x = convertX2(o.x,xOffset);
-					int y = convertY2(o.y,yOffset);
+					WormholeObject wo = (WormholeObject) o.subObject;
+					int x = convertX2(wo.x,xOffset);
+					int y = convertY2(wo.y,yOffset);
 					g.drawImage(wormholeImage, x - 4, y - 4, null);
-					g.drawString(""+o.wormholeId, x-2, y-6);
+					g.drawString(""+wo.wormholeId, x-2, y-6);
 					for (Integer id2 : p.objects.keySet()){
 						if (id == id2) continue;
 						ObjectBlock b = p.objects.get(id2);
-						if (b.isWormhole() && o.targetId == b.wormholeId){
-							int xx = convertX2(b.x,xOffset);
-							int yy = convertY2(b.y,yOffset);
-							g.setColor(new Color(255,0,255));
-							g.drawLine(x, y, xx, yy);
+						if (b.isWormhole()) {
+							WormholeObject wob = (WormholeObject) b.subObject;
+							if (wo.targetId == wob.wormholeId){
+								int xx = convertX2(wob.x,xOffset);
+								int yy = convertY2(wob.y,yOffset);
+								g.setColor(new Color(255,0,255));
+								g.drawLine(x, y, xx, yy);
+							}
 						}
 					}
 				}
-				if (o.isMT() && showMt.isSelected()){ //Paint MT
+				if (o.isMysteryTrader() && showMt.isSelected()){ //Paint MT
 					//System.out.println(o.toString());
+					MysterTraderObject mto = (MysterTraderObject) o.subObject;
+					
 					g.setFont(g.getFont().deriveFont((float)10));
 					Color col = new Color(155,155,255);
 					g.setColor(col);
-					int x = convertX(o.x);
-					int y = convertY(o.y);
+					int x = convertX(mto.x);
+					int y = convertY(mto.y);
 					/*
 					double ddx = (double)o.x / (double)o.xDest;
 					double ddy = (double)o.y / (double)o.yDest;
@@ -950,23 +960,23 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 					int xd = (int)(100*dx);
 					int yd = (int)(100*dy);
 					*/
-					int xd = convertX(o.xDest);
-					int yd = convertY(o.yDest);
+					int xd = convertX(mto.xDest);
+					int yd = convertY(mto.yDest);
 					x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 					y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
 					xd = (int)(xOffset + xd*zoom/100.0 - mariginX*zoom/100.0);
 					yd = (int)(yOffset + yd*zoom/100.0 - mariginY*zoom/100.0);
-					double dx = o.getDeltaX();
-					double dy = o.getDeltaY();
+					double dx = mto.getDeltaX();
+					double dy = mto.getDeltaY();
 					Polygon mt = getFleetShape(dx,dy,x,y);
 					if (mt != null){
 						System.out.println(dx+" "+dy);
-						System.out.println("ABC: "+o.x+","+o.y+" -> "+o.xDest+","+o.yDest+"    "+x+","+y+" -> "+xd+","+yd);
+						System.out.println("ABC: "+mto.x+","+mto.y+" -> "+mto.xDest+","+mto.yDest+"    "+x+","+y+" -> "+xd+","+yd);
 						g.fillPolygon(mt);
 						g.setStroke(new BasicStroke(0.1f));
 						g.drawLine(x,y,xd,yd);
 						if (mayRevealPartName){
-							String type = o.getMTPartName();
+							String type = mto.getPartName();
 							int stringWidth = g.getFontMetrics().stringWidth(type);
 							makeTransparent(g);
 							g.drawString(type, x-stringWidth/2, y-10);
