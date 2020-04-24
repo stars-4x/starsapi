@@ -285,6 +285,7 @@ public class DesignBlock extends Block {
 	@Override
 	public String toString() {
 	    StringBuilder sb = new StringBuilder();
+        sb.append("DesignBlock:\n");
 	    sb.append(isStarbase ? "Starbase" : "Ship");
 	    sb.append("Design " + designNumber);
 	    if (isTransferred) sb.append(", Transferred");
@@ -301,6 +302,7 @@ public class DesignBlock extends Block {
                 }
 	        }
 	    }
+        sb.append("\n");
 	    return sb.toString();
 	}
 	
