@@ -145,7 +145,7 @@ public class PlayerState {
 				if (d.isStarbase) designChangesStarbases.put(d.designNumber,d);
 				else designChangesShips.put(d.designNumber,d);
 			}
-			//System.out.println(d.toStringOld());
+			//System.out.println(d.toRawBlockString());
 			//System.out.println(d.toString());
 			//System.out.println(d.designNumber+" "+d.isStarbase+" "+d.delete+" "+d.designToDelete+" "+designChangesStarbases.size());
 		}
@@ -207,7 +207,7 @@ public class PlayerState {
 		for (Integer designId : designChangesShips.keySet()){
 			DesignChangeBlock d = designChangesShips.get(designId);
 			//System.out.println(d.toString());
-			//System.out.println(d.toStringOld());
+			//System.out.println(d.toRawBlockString());
 			if (d.colonizerModuleBug){
 				System.out.println("Empty colonizer module bug on new fleet design # "+(d.designNumber+1));
 				return "Empty colonizer module bug on new fleet design # "+(d.designNumber+1);
@@ -216,7 +216,7 @@ public class PlayerState {
 		for (Integer designId : designChangesStarbases.keySet()){
 			DesignChangeBlock d = designChangesStarbases.get(designId);
 			//System.out.println(d.toString());
-			//System.out.println(d.toStringOld());
+			//System.out.println(d.toRawBlockString());
 			if (d.spaceDocBug){
 				System.out.println("Space Doc bug on new starbase design # "+(d.designNumber+1));
 				return "Space Doc bug on new starbase design # "+(d.designNumber+1);

@@ -306,8 +306,4 @@ public class PartialFleetBlock extends Block {
 	    }
 	    return sb.toString();
 	}
-	
-	public String toStringOld() {
-		return super.toString();
-	}
 }

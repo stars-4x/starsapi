@@ -15,7 +15,7 @@ public class DesignChangeBlock extends DesignBlock {
 	 */
 	@Override
 	public void decode() throws Exception{
-		//System.out.println(super.toStringOld());
+		//System.out.println(toRawBlockString());
 		if (decryptedData[0] % 16 == 0){ //I think this is correct? I have encountered 64 and 0 so far.
 			delete = true;
 			designToDelete = decryptedData[1] % 16;

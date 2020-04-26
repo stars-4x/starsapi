@@ -36,17 +36,17 @@ public class DesignBlock extends Block {
 	@Override
 	public void decode() throws Exception {
 		if ((decryptedData[0] & 3) != 3) {
-	        throw new Exception("Unexpected design first byte: " + toStringOld());
+	        throw new Exception("Unexpected design first byte: " + toRawBlockString());
 	    }
         if ((decryptedData[0] & 0xF8) != 0) {
-            throw new Exception("Unexpected design first byte: " + toStringOld());
+            throw new Exception("Unexpected design first byte: " + toRawBlockString());
         }
         isFullDesign = (decryptedData[0] & 0x04) == 0x04;
         if ((decryptedData[1] & 0x02) != 0) {
-            throw new Exception("Unexpected design second byte: " + toStringOld());
+            throw new Exception("Unexpected design second byte: " + toRawBlockString());
         }
         if ((decryptedData[1] & 0x01) != 0x01) {
-            throw new Exception("Unexpected design second byte: " + toStringOld());
+            throw new Exception("Unexpected design second byte: " + toRawBlockString());
         }
         isTransferred = (decryptedData[1] & 0x80) == 0x80;
         isStarbase = (decryptedData[1] & 0x40) == 0x40;
@@ -276,10 +276,6 @@ public class DesignBlock extends Block {
 	        }
 	    }
 	    return false;
-	}
-
-	public String toStringOld(){
-		return super.toString();
 	}
 	
 	@Override
