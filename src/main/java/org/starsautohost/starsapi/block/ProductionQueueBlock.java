@@ -1,19 +1,6 @@
 package org.starsautohost.starsapi.block;
 
-import java.util.Vector;
-
-import org.starsautohost.starsapi.Util;
-
-public class ProductionQueueBlock extends Block {
-
-	public class QueueItem {
-		int itemId;
-		int count;
-		int completePercent;
-		int unknownBits;
-	}
-
-	Vector<QueueItem> queueItems = new Vector<QueueItem>();
+public class ProductionQueueBlock extends ProductionQueue {
 	
 	/**
 	 * Note that this block does not have a planet ID with it like the
@@ -26,23 +13,8 @@ public class ProductionQueueBlock extends Block {
 
 	@Override
 	public void decode() {
-		// Every 4 bytes from here on out is queue data
-		for(int i = 0; i <= decryptedData.length - 4; i+=4) {
-			int chunk1 = Util.read16(decryptedData, i); // Read 2
-			int chunk2 = Util.read16(decryptedData, i+2); // Read 2
-			
-			// Build up a QueueItem
-			QueueItem item = new QueueItem();
-
-			item.itemId 	= chunk1 >> 10;   // Top 6 - but only uses 4?
-			item.count 	  	= chunk1 & 0x3FF; // Bottom 10 bits
-
-			item.completePercent = chunk2 >> 4;  // Top 12 bits
-			item.unknownBits     = chunk2 & 0xF; // Bottom 4 bits
-			
-			// Add to list
-			queueItems.add(item);
-		}
+		// The whole block queue data, decode it starting at byte 0
+		decodeQueue(0);
 	}
 
 	@Override
@@ -55,13 +27,13 @@ public class ProductionQueueBlock extends Block {
 	public String toString() {
 		String s = "ProductionQueueBlock: ";
 		
-		s += "Queue items (itemId, count, complete %, unknown):\n";
+		s += "Queue items (itemId, count, complete %, itemType):\n";
 		
 		for(QueueItem queueItem: queueItems) {
 			s += queueItem.itemId + "\t";
 			s += queueItem.count + "\t";
 			s += queueItem.completePercent + "\t";	
-			s += queueItem.unknownBits + "\n";
+			s += queueItem.itemType + "\n";
 		}
 		
 		return s;
