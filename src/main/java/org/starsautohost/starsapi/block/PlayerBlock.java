@@ -20,10 +20,10 @@ public class PlayerBlock extends Block {
     }
     
     public int playerNumber; 
-    public int shipDesigns;
+    public int shipDesignCount;
     public int planets;
     public int fleets;
-    public int starbaseDesigns;
+    public int starbaseDesignCount;
     public int logo;
     public boolean fullDataFlag;
     public byte[] fullDataBytes;
@@ -38,13 +38,13 @@ public class PlayerBlock extends Block {
 	@Override
 	public void decode() throws Exception {
 	    playerNumber = decryptedData[0] & 0xFF;
-	    shipDesigns = decryptedData[1] & 0xFF;
+	    shipDesignCount = decryptedData[1] & 0xFF;
 	    planets = (decryptedData[2] & 0xFF) + ((decryptedData[3] & 0x03) << 8);
 	    if ((decryptedData[3] & 0xFC) != 0) {
 	        throw new Exception("Unexpected player values " + this);
 	    }
 	    fleets = (decryptedData[4] & 0xFF) + ((decryptedData[5] & 0x03) << 8);
-	    starbaseDesigns = ((decryptedData[5] & 0xF0) >> 4);
+	    starbaseDesignCount = ((decryptedData[5] & 0xF0) >> 4);
         if ((decryptedData[5] & 0x0C) != 0) {
             throw new Exception("Unexpected player values " + this);
         }
@@ -95,11 +95,11 @@ public class PlayerBlock extends Block {
 	    if (fullDataFlag) {
             byte[] res = new byte[8 + 0x68 + 1 + playerRelations.length + nameBytes.length];
             res[0] = (byte)playerNumber;
-            res[1] = (byte)shipDesigns;
+            res[1] = (byte)shipDesignCount;
             res[2] = (byte)(planets & 0xFF);
             res[3] = (byte)(planets >> 8);
             res[4] = (byte)(fleets & 0xFF);
-            res[5] = (byte)((starbaseDesigns << 4) + (fleets >> 8));
+            res[5] = (byte)((starbaseDesignCount << 4) + (fleets >> 8));
             res[6] = (byte)((logo << 3) + 7);
             res[7] = byte7;
             System.arraycopy(fullDataBytes, 0, res, 8, fullDataBytes.length);
@@ -110,11 +110,11 @@ public class PlayerBlock extends Block {
 	    } else {
 	        byte[] res = new byte[8 + nameBytes.length];
 	        res[0] = (byte)playerNumber;
-	        res[1] = (byte)shipDesigns;
+	        res[1] = (byte)shipDesignCount;
 	        res[2] = (byte)(planets & 0xFF);
 	        res[3] = (byte)(planets >> 8);
 	        res[4] = (byte)(fleets & 0xFF);
-	        res[5] = (byte)((starbaseDesigns << 4) + (fleets >> 8));
+	        res[5] = (byte)((starbaseDesignCount << 4) + (fleets >> 8));
 	        res[6] = (byte)((logo << 3) + 3);
 	        res[7] = byte7;
 	        System.arraycopy(nameBytes, 0, res, 8, nameBytes.length);

@@ -596,10 +596,10 @@ public class GameToTestbed {
                 playerInfo.playerBlock = playerBlock;
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
-            for (int i = 0; i < playerBlock.shipDesigns; i++) {
+            for (int i = 0; i < playerBlock.shipDesignCount; i++) {
                 shipDesignOwner.add(playerNumberObj);
             }
-            for (int i = 0; i < playerBlock.starbaseDesigns; i++) {
+            for (int i = 0; i < playerBlock.starbaseDesignCount; i++) {
                 starbaseDesignOwner.add(playerNumberObj);
             }
         }
@@ -751,8 +751,8 @@ public class GameToTestbed {
                         playerBlock.setMtMask(4095);
                         playerBlock.planets = players[i].playerBlock.planets;
                         playerBlock.fleets = players[i].playerBlock.planets;
-                        playerBlock.shipDesigns = players[i].playerBlock.shipDesigns;
-                        playerBlock.starbaseDesigns = players[i].playerBlock.starbaseDesigns;
+                        playerBlock.shipDesignCount = players[i].playerBlock.shipDesignCount;
+                        playerBlock.starbaseDesignCount = players[i].playerBlock.starbaseDesignCount;
                         players[i].playerBlock = playerBlock;
                         players[i].playerBlock.encode();
                         break;
@@ -825,7 +825,7 @@ public class GameToTestbed {
                     String name = playerInfoProperties.getProperty(prefix + "ship." + (j+1) + ".name");
                     DesignBlock designBlock = DesignBlock.fromDesignString(false, j, isRs, shipDesign, name);
                     if (players[i].shipDesignBlocks[j] == null) {
-                        players[i].playerBlock.shipDesigns++;
+                        players[i].playerBlock.shipDesignCount++;
                         changed = true;
                     }
                     players[i].shipDesignBlocks[j] = designBlock;
@@ -838,7 +838,7 @@ public class GameToTestbed {
                     String name = playerInfoProperties.getProperty(prefix + "starbase." + (j+1) + ".name");
                     DesignBlock designBlock = DesignBlock.fromDesignString(true, j, isRs, starbaseDesign, name);
                     if (players[i].starbaseDesignBlocks[j] == null) {
-                        players[i].playerBlock.starbaseDesigns++;
+                        players[i].playerBlock.starbaseDesignCount++;
                         changed = true;
                     }
                     players[i].starbaseDesignBlocks[j] = designBlock;
@@ -914,8 +914,8 @@ public class GameToTestbed {
     }
 
     private void postProcessDesignsForPlayer(PlayerInfo playerInfo) throws Exception {
-        playerInfo.playerBlock.shipDesigns = 0;
-        playerInfo.playerBlock.starbaseDesigns = 0;
+        playerInfo.playerBlock.shipDesignCount = 0;
+        playerInfo.playerBlock.starbaseDesignCount = 0;
         for (int i = 0; i < 16; i++) {
             DesignInfo designInfo = playerInfo.shipDesigns[i];
             if (designInfo != null) {
@@ -928,7 +928,7 @@ public class GameToTestbed {
                     block.convertToFullDesignForHstFile();
                     playerInfo.fullShipDesignBlocks[i] = block;
                 }
-                playerInfo.playerBlock.shipDesigns++;
+                playerInfo.playerBlock.shipDesignCount++;
             }
         }
         for (int i = 0; i < 10; i++) {
@@ -943,7 +943,7 @@ public class GameToTestbed {
                     block.convertToFullDesignForHstFile();
                     playerInfo.fullStarbaseDesignBlocks[i] = block;
                 }
-                playerInfo.playerBlock.starbaseDesigns++;
+                playerInfo.playerBlock.starbaseDesignCount++;
             }
         }
     }

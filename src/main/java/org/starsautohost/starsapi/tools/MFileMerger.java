@@ -116,21 +116,21 @@ public class MFileMerger {
         }
         for (int player = 0; player < 16; player++) {
             if (players[player] == null) continue;
-            players[player].shipDesigns = 0;
-            players[player].starbaseDesigns = 0;
+            players[player].shipDesignCount = 0;
+            players[player].starbaseDesignCount = 0;
             players[player].planets = 0;
             players[player].fleets = fleets[player].size();
             for (int designNumber = 0; designNumber < 16; designNumber++) {
                 DesignInfo designInfo = shipDesigns[player][designNumber];
                 if (designInfo != null) {
                     shipDesignBlocks[player][designNumber] = designInfo.block;
-                    players[player].shipDesigns++;
+                    players[player].shipDesignCount++;
                 }
             }
             for (int designNumber = 0; designNumber < 10; designNumber++) {
                 DesignInfo designInfo = starbaseDesigns[player][designNumber];
                 if (designInfo != null) {
-                    players[player].starbaseDesigns++;
+                    players[player].starbaseDesignCount++;
                 }
             }
             players[player].encode();
@@ -406,16 +406,16 @@ public class MFileMerger {
                 PlayerBlock otherVersion = players[playerBlock.playerNumber];
                 playerBlockToWrite.planets = 0;
                 playerBlockToWrite.fleets = otherVersion.fleets;
-                playerBlockToWrite.shipDesigns = otherVersion.shipDesigns;
-                playerBlockToWrite.starbaseDesigns = otherVersion.starbaseDesigns;
+                playerBlockToWrite.shipDesignCount = otherVersion.shipDesignCount;
+                playerBlockToWrite.starbaseDesignCount = otherVersion.starbaseDesignCount;
                 players[playerBlock.playerNumber] = playerBlockToWrite;
                 playerBlockToWrite.encode();
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
-            for (int i = 0; i < playerBlock.shipDesigns; i++) {
+            for (int i = 0; i < playerBlock.shipDesignCount; i++) {
                 shipDesignOwner.add(playerNumberObj);
             }
-            for (int i = 0; i < playerBlock.starbaseDesigns; i++) {
+            for (int i = 0; i < playerBlock.starbaseDesignCount; i++) {
                 starbaseDesignOwner.add(playerNumberObj);
             }
         }
@@ -507,14 +507,14 @@ public class MFileMerger {
                 players[playerBlock.playerNumber] = playerBlock;
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
-            for (int i = 0; i < playerBlock.shipDesigns; i++) {
+            for (int i = 0; i < playerBlock.shipDesignCount; i++) {
                 shipDesignOwner.add(playerNumberObj);
             }
-            playerBlock.shipDesigns = 0;
-            for (int i = 0; i < playerBlock.starbaseDesigns; i++) {
+            playerBlock.shipDesignCount = 0;
+            for (int i = 0; i < playerBlock.starbaseDesignCount; i++) {
                 starbaseDesignOwner.add(playerNumberObj);
             }
-            playerBlock.starbaseDesigns = 0;
+            playerBlock.starbaseDesignCount = 0;
         }
 
         private void processDesignBlock(DesignBlock designBlock) {
