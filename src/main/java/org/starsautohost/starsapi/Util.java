@@ -90,7 +90,6 @@ public class Util {
             return 4;
         }
     }
-
 	
 	/**
 	 * For debugging!
@@ -111,7 +110,6 @@ public class Util {
 		return sb.toString();
 	}
 	
-	
 	/**
 	 * Reads in the given filename and returns a byte array of its contents
 	 * 
@@ -119,7 +117,7 @@ public class Util {
 	 * @return
 	 * @throws IOException
 	 */
-	public byte[] fileToBytes(String filename) throws IOException {
+	public static byte[] fileToBytes(String filename) throws IOException {
 		File file = new File(filename);
 		FileInputStream fileInputStream = new FileInputStream(file);
 		
@@ -131,140 +129,348 @@ public class Util {
 		return bytes;
 	}
 	
-	public static char[] hexDigits = "0123456789ABCDEF".toCharArray(); 
-	public static String encodesOneByte = " aehilnorst";
-    public static String encodesB = "ABCDEFGHIJKLMNOP";
-    public static String encodesC = "QRSTUVWXYZ012345";
-    public static String encodesD = "6789bcdfgjkmpquv";
-    public static String encodesE = "wxyz+-,!.?:;'*%$";
-	
-	public static byte[] encodeStringForStarsFile(String s) {
-	    StringBuilder hexChars = new StringBuilder();
-	    for (int i = 0; i < s.length(); i++) {
-	        char ch = s.charAt(i);
-	        if (ch > 255) ch = '?';
-	        int index = encodesOneByte.indexOf(ch);
-	        if (index >= 0) {
-	            hexChars.append(hexDigits[index]);
-	            continue;
-	        }
-	        index = encodesB.indexOf(ch);
-	        if (index >= 0) {
-	            hexChars.append('B');
-                hexChars.append(hexDigits[index]);
-                continue;
-	        }
-            index = encodesC.indexOf(ch);
-            if (index >= 0) {
-                hexChars.append('C');
-                hexChars.append(hexDigits[index]);
-                continue;
-            }
-            index = encodesD.indexOf(ch);
-            if (index >= 0) {
-                hexChars.append('D');
-                hexChars.append(hexDigits[index]);
-                continue;
-            }
-            index = encodesE.indexOf(ch);
-            if (index >= 0) {
-                hexChars.append('E');
-                hexChars.append(hexDigits[index]);
-                continue;
-            }
-            hexChars.append('F');
-            hexChars.append(hexDigits[ch & 0x0F]);
-            hexChars.append(hexDigits[ch & 0xF0]);
-	    }
-	    if (hexChars.length() % 2 != 0) hexChars.append('F');
-	    byte[] res = new byte[1 + hexChars.length()/2];
-	    res[0] = (byte)(hexChars.length()/2);
-	    for (int i = 1; i < res.length; i++) {
-	        char firstChar = hexChars.charAt(2*i - 2);
-	        char secondChar = hexChars.charAt(2*i - 1);
-	        //System.out.print(firstChar+""+secondChar);
-	        byte b = (byte)((charToNibble(firstChar) << 4) | (charToNibble(secondChar)));
-	        res[i] = b;
-	    }
-	    return res;
-	}
-	
-	public static String decodeBytesForStarsString(byte[] res) {
-		StringBuffer result = new StringBuffer();
-		//System.out.println("Decoding");
+	// Hex values representing 4-bit nibbles
+	private static char[] hexDigits = "0123456789ABCDEF".toCharArray(); 
+
+	// All of these characters are found in the stars26jrc4 binary at offset 
+	// 000B:DD8A
+	private static String encodesOneNibble = " aehilnorst";  // 0-A indexed
+	private static String encodesB = "ABCDEFGHIJKLMNOP";
+	private static String encodesC = "QRSTUVWXYZ012345";
+	private static String encodesD = "6789bcdfgjkmpquv";
+	private static String encodesE = "wxyz+-,!.?:;'*%$";
+
+	/**
+	 * Encodes a String of text using Stars! text encoding and return the hex-
+	 * encoded String
+	 * 
+	 * @param text
+	 * @return
+	 */
+	public static String encodeHexStarsString(String text) {
 		StringBuilder hexChars = new StringBuilder();
-	    for (int i = 1; i < res.length; i++) {
-	    	byte b = res[i];
-	    	byte b1 = (byte)((b & 0xff) >> 4);
-	    	byte b2 = (byte)((b & 0xff) % 16);
-	        char firstChar = nibbleToChar(b1);
-	        char secondChar = nibbleToChar(b2);
-	        hexChars.append(firstChar);
-	        hexChars.append(secondChar);
-	    }
-	    //System.out.println("HexChars: "+hexChars.toString());
-	    for (int t = 0; t < hexChars.length(); t++){
-	    	char ch1 = hexChars.charAt(t);
-	    	if (ch1 == 'F'){
-	    		//Hm, what to do here?
-	    		//if (t+1 < hexChars.length() && hexChars.charAt(t+1) == '0'){
-	    		//result.append("\n");
-	    		//}
-	    		//t++;
-	    	}
-	    	else if (ch1 == 'E'){
-	    		char ch2 = hexChars.charAt(t+1);
-	    		int index = Integer.parseInt(""+ch2,16);
-	    		result.append(encodesE.charAt(index));
-	    		t++;
-	    	}
-	    	else if (ch1 == 'D'){
-	    		char ch2 = hexChars.charAt(t+1);
-	    		int index = Integer.parseInt(""+ch2,16);
-	    		result.append(encodesD.charAt(index));
-	    		t++;
-	    	}
-	    	else if (ch1 == 'C'){
-	    		char ch2 = hexChars.charAt(t+1);
-	    		int index = Integer.parseInt(""+ch2,16);
-	    		result.append(encodesC.charAt(index));
-	    		t++;
-	    	}
-	    	else if (ch1 == 'B'){
-	    		char ch2 = hexChars.charAt(t+1);
-	    		int index = Integer.parseInt(""+ch2,16);
-	    		result.append(encodesB.charAt(index));
-	    		t++;
-	    	}
-	    	else{
-	    		int index = Integer.parseInt(""+ch1,16);
-	    		result.append(encodesOneByte.charAt(index));
-	    	}
-	    }
-	    return result.toString();
-	}
-	
-	public static byte charToNibble(char ch) {
-	    if (ch >= '0' && ch <= '9') return (byte)(ch - '0');
-        if (ch >= 'A' && ch <= 'F') return (byte)(ch - 'A' + 10);
-        if (ch >= 'a' && ch <= 'f') return (byte)(ch - 'a' + 10);
-	    throw new IllegalArgumentException();
-	}
-	
-	public static char nibbleToChar(byte b){
-		int i1 = (int)(b&0xff)+(int)'0';
-		int i2 = (int)(b&0xff)+(int)'A'-10;
-		int i3 = (int)(b&0xff)+(int)'a'-10;
-		if (i1 >= '0' && i1 <= '9') return (char)i1;
-		if (i2 >= 'A' && i2 <= 'F') return (char)i2;
-		if (i3 >= 'a' && i3 <= 'f') return (char)i3;
-		return ' '; //Could not find correct char
+
+		// Loop through each hex char; should be all capitalized
+		for (int i = 0; i < text.length(); i++) {
+			char thisChar = text.charAt(i);
+
+			// Check for bad-value...
+			if (thisChar > 255) 
+				thisChar = '?';
+
+			// If this character is one that only will be encoded with 1 nibble
+			int index = encodesOneNibble.indexOf(thisChar);
+			if (index >= 0) {
+				hexChars.append(hexDigits[index]);
+				continue;
+			}
+			else {
+				index = encodesB.indexOf(thisChar);
+				if (index >= 0) {
+					hexChars.append('B');
+					hexChars.append(hexDigits[index]);
+					continue;
+				}
+				else {
+					index = encodesC.indexOf(thisChar);
+					if (index >= 0) {
+						hexChars.append('C');
+						hexChars.append(hexDigits[index]);
+						continue;
+					}
+					else {
+						index = encodesD.indexOf(thisChar);
+						if (index >= 0) {
+							hexChars.append('D');
+							hexChars.append(hexDigits[index]);
+							continue;
+						}
+						else {
+							index = encodesE.indexOf(thisChar);
+							if (index >= 0) {
+								hexChars.append('E');
+								hexChars.append(hexDigits[index]);
+								continue;
+							}
+							// Otherwise, 3-nibble encoded
+							else {
+								hexChars.append('F');
+								// Just encode the ASCII char, but swap the nibbles
+								hexChars.append(hexDigits[(thisChar & 0x0F)]);
+								hexChars.append(hexDigits[(thisChar & 0xF0) >> 4]);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return hexChars.toString();
 	}
 
-	public static void main(String[] args){
-		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile("abc")));
-		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile("abcdefABCDEF12345")));
-		String all = " aehilnorstABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789bcdfgjkmpquvwxyz+-,!.?:;'*%$";
-		System.out.println("Decoded: "+Util.decodeBytesForStarsString(Util.encodeStringForStarsFile(all)));
+	/**
+	 * Encode the given text as a Stars! encoded string
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static byte[] encodeStarsString(String s) {
+		String hexChars = encodeHexStarsString(s);
+
+		// Require multiple of 2 bytes and append an 'F' to make it so
+		if (hexChars.length() % 2 != 0) 
+			hexChars = hexChars + "F";
+
+		// Convert byte size to a hex string
+		String byteSizeHex = byteToHex((byte) (hexChars.length()/2));
+
+		// Add the byte size as a header to the data
+		hexChars = byteSizeHex + hexChars;
+
+		byte[] res =  hexToByteArray(hexChars);
+
+		return res;
+	}
+
+	/**
+	 * Decode a sequence of hex characters that are ASCII encoded
+	 * 
+	 * @param hexChars
+	 * @param byteSize
+	 * @return
+	 */
+	public static String decodeHexAscii(String hexChars, int byteSize) {
+		StringBuffer result = new StringBuffer();
+
+		// Keep track of what byte we're at for certain checks
+		int atByteIndex = -1;
+
+		// Loop through each hex character and decode the text
+		for (int t = 0; t < 2*byteSize; t+=2) {  // Skip every 2 nibbles
+			// Every 2 nibbles is the start of a new byte
+			atByteIndex = t / 2;  // Integer division expected
+
+			char thisNibble = hexChars.charAt(t);
+			char nextNibble = hexChars.charAt(t+1);
+
+			// The encoded text is the direct ASCII value of the swapped
+			// nibbles
+			int parsed = Integer.parseInt("" + thisNibble + nextNibble, 16);
+			char theChar = (char) (parsed & 0xff);
+
+			result.append(theChar);
+
+			// We've already hit the last byte, ignore the rest (junk memory)
+			if (atByteIndex >= byteSize - 1)
+				break;
+		}
+
+		return result.toString();
+	}
+
+	/**
+	 * Decode a sequence of hex characters containing Stars-encoded text
+	 *  
+	 * @param hexChars
+	 * @return
+	 */
+	public static String decodeHexStarsString(String hexChars, int byteSize)
+	{
+		StringBuffer result = new StringBuffer();
+
+		// Keep track of what byte we're at for certain checks
+		int atByteIndex = -1;
+
+		// Loop through each hex character and decode the text depending on
+		// what the hex value is. 1 Nibble (4 bits) is represented by one char
+		//	    for (int t = 0; t < hexChars.length(); t++) {
+		for (int t = 0; t < 2*byteSize; t++) {
+			// Every 2 nibbles is the start of a new byte
+			atByteIndex = t / 2;  // Integer division expected
+
+			char thisNibble = hexChars.charAt(t);
+
+			// 0-A is 1-Nibble (4-bits) encoded text
+			if (thisNibble <= 'A') {  // ASCII math FTW
+				int charIndex = Integer.parseInt(""+thisNibble, 16);
+				// This nibble is just an index in a char array
+				result.append(encodesOneNibble.charAt(charIndex));
+			}
+
+			// Three-nibble encoded text starts with an 'F'
+			else if (thisNibble == 'F') {
+				// We've already hit the last byte, no decodeable 3-nibble
+				// chars are left (probably just junk remaining)
+				if (atByteIndex >= byteSize - 1)
+					continue;
+
+				char nextNibble = hexChars.charAt(t + 1);
+				char nextNextNibble = hexChars.charAt(t + 2);
+
+				// The encoded text is the direct ASCII value of the swapped
+				// nibbles
+				int parsed = Integer.parseInt("" + nextNextNibble + nextNibble, 16);
+				char theChar = (char) (parsed & 0xff);
+
+				result.append(theChar);
+
+				// Advance passed the two characters we decoded
+				t += 2;
+			}
+
+			// Otherwise, the next hex value is B,C,D, or E, and text is
+			// 2-nibble encoded
+			else
+			{
+				char nextNibble = hexChars.charAt(t+1);
+				int charIndex = Integer.parseInt(""+nextNibble, 16);
+
+				if (thisNibble == 'B')
+					result.append(encodesB.charAt(charIndex));
+				else if (thisNibble == 'C')
+					result.append(encodesC.charAt(charIndex));
+				else if (thisNibble == 'D')
+					result.append(encodesD.charAt(charIndex));
+				else if (thisNibble == 'E')
+					result.append(encodesE.charAt(charIndex));
+
+				// Advance passed the character we decoded
+				t++;
+			}
+		}
+
+		return result.toString();
+	}
+
+	/**
+	 * Decode a byte array containing Stars-encoded text.
+	 * 
+	 * This is the general case for most (all?) text encoded byte arrays, other
+	 * than messages between users.
+	 * 
+	 * @param res
+	 * @return
+	 */
+	public static String decodeStarsString(byte[] res) {
+		// First byte is string byte size
+		int byteSize = res[0];
+
+		// Convert byte array to hex string, stripping off first byte
+		byte[] textBytes = subArray(res, 1);
+		String hexChars = byteArrayToHex(textBytes);
+
+		// Decode hex string into original text
+		String decoded = decodeHexStarsString(hexChars, byteSize);
+
+		return decoded;
+	}
+
+	/**
+	 * Convert a byte to its 2-nibble hexadecimal representation
+	 * 
+	 * @param b
+	 * @return
+	 */
+	public static String byteToHex(byte b) {
+		int i = (b & 0xff);  // Java has only signed types - force to int
+
+		// Convert
+		String hex = Integer.toHexString(i).toUpperCase();
+
+		// Zero pad to 2 chars
+		if(hex.length() == 1)
+			hex = "0" + hex;
+
+		return hex;
+	}
+
+	/**
+	 * Convert a byte array into its hexadecimal representation
+	 * 
+	 * @param bytes
+	 * @return
+	 */
+	public static String byteArrayToHex(byte[] bytes) {
+		StringBuilder hexChars = new StringBuilder();
+
+		// Convert each byte to its equivalent hex value
+		for (int i = 0; i < bytes.length; i++) {
+			String hex = byteToHex(bytes[i]);
+			hexChars.append(hex);
+		}
+
+		return hexChars.toString();
+	}
+
+	/**
+	 * Convert a string of hexadecimal characters to a byte equivalents. Every
+	 * two hex chars are one byte.
+	 *  
+	 * @param hexChars
+	 * @return
+	 */
+	public static byte[] hexToByteArray(String hexChars) {
+		// Create byte array to hold header and message
+		byte[] res = new byte[(hexChars.length() / 2)];
+
+		// Convert hex characters to byte array
+		for (int i = 0; i < res.length; i++) { // Jump every 2
+			char firstChar = hexChars.charAt(2*i);
+			char secondChar = hexChars.charAt(2*i+1);
+
+			// Convert the two hex characters into its byte representation
+			byte b = (byte)((charToNibble(firstChar) << 4) | (charToNibble(secondChar)));
+
+			// Save it to the array
+			res[i] = b;
+		}
+
+		return res;
+	}
+
+	/** 
+	 * Convert a hex character to its equivalent ASCII character representation;
+	 * expects capitalized ASCII chars
+	 * @param ch
+	 * @return
+	 */
+	private static byte charToNibble(char ch) {
+		// Convert ASCII Hex char to number
+		if (ch >= '0' && ch <= '9') 
+			return (byte)(ch - '0');
+
+		if (ch >= 'A' && ch <= 'F') 
+			return (byte)(ch - 'A' + 10);
+
+		throw new IllegalArgumentException();
+	}
+
+	/**
+	 * Returns a sub array of the given input using start and end indexes
+	 * 
+	 * @param input
+	 * @param startIdx
+	 * @param endIdx
+	 * @return
+	 */
+	public static byte[] subArray(byte[] input, int startIdx, int endIdx) {
+		int size = endIdx - startIdx + 1;
+
+		byte[] output = new byte[size];
+		System.arraycopy(input, startIdx, output, 0, size);
+
+		return output;
+	}
+
+	/**
+	 * Returns a sub array starting at the given index until the end of the 
+	 * input array
+	 * 
+	 * @param input
+	 * @param startIdx
+	 * @return
+	 */
+	public static byte[] subArray(byte[] input, int startIdx) {
+		return subArray(input, startIdx, input.length-1);
 	}
 }

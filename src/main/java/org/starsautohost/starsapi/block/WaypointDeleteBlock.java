@@ -8,7 +8,7 @@ public class WaypointDeleteBlock extends WaypointChangeTaskBlock{
 
 	@Override
 	public void decode() {
-		//System.out.println(super.toStringOld());
+		//System.out.println(toRawBlockString());
 		fleetNumber = (decryptedData[0] & 0xFF) + ((decryptedData[1] & 1) << 8);
 		wayPointNr = (decryptedData[2]&0xff);
 	}

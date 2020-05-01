@@ -21,6 +21,9 @@ import org.starsautohost.starsapi.block.FleetBlock;
 import org.starsautohost.starsapi.block.FleetNameBlock;
 import org.starsautohost.starsapi.block.MessagesFilterBlock;
 import org.starsautohost.starsapi.block.ObjectBlock;
+import org.starsautohost.starsapi.block.ObjectBlock.CountObject;
+import org.starsautohost.starsapi.block.ObjectBlock.MinefieldObject;
+import org.starsautohost.starsapi.block.ObjectBlock.WormholeObject;
 import org.starsautohost.starsapi.block.PartialFleetBlock;
 import org.starsautohost.starsapi.block.PartialPlanetBlock;
 import org.starsautohost.starsapi.block.PlanetBlock;
@@ -593,10 +596,10 @@ public class GameToTestbed {
                 playerInfo.playerBlock = playerBlock;
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
-            for (int i = 0; i < playerBlock.shipDesigns; i++) {
+            for (int i = 0; i < playerBlock.shipDesignCount; i++) {
                 shipDesignOwner.add(playerNumberObj);
             }
-            for (int i = 0; i < playerBlock.starbaseDesigns; i++) {
+            for (int i = 0; i < playerBlock.starbaseDesignCount; i++) {
                 starbaseDesignOwner.add(playerNumberObj);
             }
         }
@@ -670,34 +673,41 @@ public class GameToTestbed {
 
         private void processObjectBlock(ObjectBlock object) throws Exception {
             if (object.isCounter()) return;
-            ObjectBlock formerBlock = objects.get(object.getObjectId());
+            
+            ObjectBlock formerBlock = objects.get(object.getMapObjectId());
             if (object.isWormhole()) {
                 if (formerBlock == null) {
                     object = (ObjectBlock) Block.copy(object);
-                    object.setWormholeVisible(0xFFFF);
-                    if (object.isWormholeBeenThrough(playerMask)) {
-                        object.setWormholeBeenThrough(0xFFFF);
+                	WormholeObject wobj = (WormholeObject) object.subObject;
+                	wobj.setWormholeVisible(0xFFFF);
+                    if (wobj.isWormholeBeenThrough(playerMask)) {
+                    	wobj.setWormholeBeenThrough(0xFFFF);
                     }
                     object.encode();
-                    objects.put(object.getObjectId(), object);
+                    objects.put(object.getMapObjectId(), object);
                 } else {
-                    if (formerBlock.isWormholeBeenThrough(playerMask)) return;
-                    if (object.isWormholeBeenThrough(playerMask)) {
+                	WormholeObject wobjFormer = (WormholeObject) formerBlock.subObject;
+                    if (wobjFormer.isWormholeBeenThrough(playerMask)) return;
+                    
+                    WormholeObject wobj = (WormholeObject) object.subObject;
+                    if (wobj.isWormholeBeenThrough(playerMask)) {
                         object = (ObjectBlock) Block.copy(object);
-                        object.setWormholeVisible(0xFFFF);
-                        object.setWormholeBeenThrough(0xFFFF);
+                        wobj = (WormholeObject) object.subObject;
+                        wobj.setWormholeVisible(0xFFFF);
+                        wobj.setWormholeBeenThrough(0xFFFF);
                         object.encode();
-                        objects.put(object.getObjectId(), object);
+                        objects.put(object.getMapObjectId(), object);
                     }
                 }
             } else {
                 if (formerBlock != null) return;
                 if (object.isMinefield()) {
                     object = (ObjectBlock) Block.copy(object);
-                    object.setMinefieldVisible(0xFFFF);
+                	MinefieldObject mfo = (MinefieldObject) object.subObject;
+                	mfo.setMinefieldVisible(0xFFFF);
                     object.encode();
                 }
-                objects.put(object.getObjectId(), object);
+                objects.put(object.getMapObjectId(), object);
             }
         }
     }
@@ -741,8 +751,8 @@ public class GameToTestbed {
                         playerBlock.setMtMask(4095);
                         playerBlock.planets = players[i].playerBlock.planets;
                         playerBlock.fleets = players[i].playerBlock.planets;
-                        playerBlock.shipDesigns = players[i].playerBlock.shipDesigns;
-                        playerBlock.starbaseDesigns = players[i].playerBlock.starbaseDesigns;
+                        playerBlock.shipDesignCount = players[i].playerBlock.shipDesignCount;
+                        playerBlock.starbaseDesignCount = players[i].playerBlock.starbaseDesignCount;
                         players[i].playerBlock = playerBlock;
                         players[i].playerBlock.encode();
                         break;
@@ -815,7 +825,7 @@ public class GameToTestbed {
                     String name = playerInfoProperties.getProperty(prefix + "ship." + (j+1) + ".name");
                     DesignBlock designBlock = DesignBlock.fromDesignString(false, j, isRs, shipDesign, name);
                     if (players[i].shipDesignBlocks[j] == null) {
-                        players[i].playerBlock.shipDesigns++;
+                        players[i].playerBlock.shipDesignCount++;
                         changed = true;
                     }
                     players[i].shipDesignBlocks[j] = designBlock;
@@ -828,7 +838,7 @@ public class GameToTestbed {
                     String name = playerInfoProperties.getProperty(prefix + "starbase." + (j+1) + ".name");
                     DesignBlock designBlock = DesignBlock.fromDesignString(true, j, isRs, starbaseDesign, name);
                     if (players[i].starbaseDesignBlocks[j] == null) {
-                        players[i].playerBlock.starbaseDesigns++;
+                        players[i].playerBlock.starbaseDesignCount++;
                         changed = true;
                     }
                     players[i].starbaseDesignBlocks[j] = designBlock;
@@ -882,10 +892,11 @@ public class GameToTestbed {
         }
         for (ObjectBlock object : objects.values()) {
             if (object.isMinefield()) {
-                if (object.getMinefieldType() == 1 || object.isMinefieldDetonating()) {
-                    players[object.owner].prt = PlayerBlock.PRT.SD;
-                } else if (object.getMinefieldType() == 2) {
-                    if (players[object.owner].prt == -1) players[object.owner].prt = -2;
+            	MinefieldObject mfobj = (MinefieldObject) object.subObject; 
+                if (mfobj.getMinefieldType() == 1 || mfobj.isMinefieldDetonating()) {
+                    players[mfobj.owner].prt = PlayerBlock.PRT.SD;
+                } else if (mfobj.getMinefieldType() == 2) {
+                    if (players[mfobj.owner].prt == -1) players[mfobj.owner].prt = -2;
                 }
             }
         }
@@ -903,8 +914,8 @@ public class GameToTestbed {
     }
 
     private void postProcessDesignsForPlayer(PlayerInfo playerInfo) throws Exception {
-        playerInfo.playerBlock.shipDesigns = 0;
-        playerInfo.playerBlock.starbaseDesigns = 0;
+        playerInfo.playerBlock.shipDesignCount = 0;
+        playerInfo.playerBlock.starbaseDesignCount = 0;
         for (int i = 0; i < 16; i++) {
             DesignInfo designInfo = playerInfo.shipDesigns[i];
             if (designInfo != null) {
@@ -917,7 +928,7 @@ public class GameToTestbed {
                     block.convertToFullDesignForHstFile();
                     playerInfo.fullShipDesignBlocks[i] = block;
                 }
-                playerInfo.playerBlock.shipDesigns++;
+                playerInfo.playerBlock.shipDesignCount++;
             }
         }
         for (int i = 0; i < 10; i++) {
@@ -932,7 +943,7 @@ public class GameToTestbed {
                     block.convertToFullDesignForHstFile();
                     playerInfo.fullStarbaseDesignBlocks[i] = block;
                 }
-                playerInfo.playerBlock.starbaseDesigns++;
+                playerInfo.playerBlock.starbaseDesignCount++;
             }
         }
     }
@@ -1001,9 +1012,12 @@ public class GameToTestbed {
             }
         }
         if (!objects.isEmpty()) {
+            // Create count object block first
             ObjectBlock counter = new ObjectBlock();
-            counter.count = objects.size();
+            counter.createSubObject(CountObject.class);
+            ((CountObject)counter.subObject).count = objects.size();
             counter.encode();
+            
             blocks.add(counter);
             for (ObjectBlock object : objects.values()) {
                 blocks.add(object);
@@ -1083,7 +1097,8 @@ public class GameToTestbed {
         }
         if (!objects.isEmpty()) {
             ObjectBlock counter = new ObjectBlock();
-            counter.count = objects.size();
+            counter.createSubObject(CountObject.class);
+            ((CountObject)counter.subObject).count = objects.size();
             counter.encode();
             blocks.add(counter);
             for (ObjectBlock object : objects.values()) {

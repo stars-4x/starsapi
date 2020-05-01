@@ -9,8 +9,4 @@ public abstract class Waypoint extends Block{
 	public Waypoint cloneWaypoint() throws Exception{
 		return (Waypoint)cloneBlock();
 	}
-
-	public String toStringOld() {
-		return super.toString();
-	}
 }

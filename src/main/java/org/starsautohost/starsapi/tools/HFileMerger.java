@@ -105,14 +105,14 @@ public class HFileMerger {
             for (int designNumber = 0; designNumber < 16; designNumber++) {
                 DesignInfo designInfo = shipDesigns[player][designNumber];
                 if (designInfo != null) {
-                    players[player].shipDesigns++;
+                    players[player].shipDesignCount++;
                     designInfo.checkConflict();
                 }
             }
             for (int designNumber = 0; designNumber < 10; designNumber++) {
                 DesignInfo designInfo = starbaseDesigns[player][designNumber];
                 if (designInfo != null) {
-                    players[player].starbaseDesigns++;
+                    players[player].starbaseDesignCount++;
                     designInfo.checkConflict();
                 }
             }
@@ -257,14 +257,14 @@ public class HFileMerger {
                 players[playerBlock.playerNumber] = playerBlock;
             }
             Integer playerNumberObj = Integer.valueOf(playerBlock.playerNumber);
-            for (int i = 0; i < playerBlock.shipDesigns; i++) {
+            for (int i = 0; i < playerBlock.shipDesignCount; i++) {
                 shipDesignOwner.add(playerNumberObj);
             }
-            playerBlock.shipDesigns = 0;
-            for (int i = 0; i < playerBlock.starbaseDesigns; i++) {
+            playerBlock.shipDesignCount = 0;
+            for (int i = 0; i < playerBlock.starbaseDesignCount; i++) {
                 starbaseDesignOwner.add(playerNumberObj);
             }
-            playerBlock.starbaseDesigns = 0;
+            playerBlock.starbaseDesignCount = 0;
         }
 
         private void processDesignBlock(DesignBlock designBlock) {
