@@ -2,11 +2,13 @@ package org.starsautohost.racebuilder;
 
 import java.awt.*;
 import java.awt.event.*;
+
 import javax.swing.*;
+
 import org.starsautohost.racebuilder.craigstars.Race;
 import org.starsautohost.racebuilder.craigstars.RacePointsCalculator;
 
-public class RaceBuilder extends JDialog implements ActionListener{
+public class RaceBuilder extends JFrame implements ActionListener{
 
 	private static final long serialVersionUID = 1L;
 	private JButton back = new JButton("< Back");
@@ -36,19 +38,12 @@ public class RaceBuilder extends JDialog implements ActionListener{
 		//r.getHabHigh().setGrav(84);
 		//System.out.println(r.getHabLow().getGrav()+" "+r.getHabCenter(0)+" "+r.getHabHigh().getGrav()+" "+r.getAvailablePoints());
 		
-		JFrame fr = new JFrame();
-		fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		fr.setSize(100,100);
-		fr.setVisible(true);
-		new RaceBuilder(fr,r);
+		new RaceBuilder(r);
 	}
 	
-	public RaceBuilder(Window w, Race r){
-		super(w,ModalityType.APPLICATION_MODAL);
-		construct(r);
-	}
 	public RaceBuilder(Race r){
 		super();
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		construct(r);
 	}
 	private void construct(Race r){
@@ -89,6 +84,8 @@ public class RaceBuilder extends JDialog implements ActionListener{
 		finished.addActionListener(this);
 		raceChanged();
 		pack();
+		Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+		setLocation((screen.width-getWidth())/2, (screen.height-getHeight())/2);
 		setVisible(true);
 	}
 	@Override

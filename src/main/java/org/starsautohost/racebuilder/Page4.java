@@ -1,8 +1,7 @@
 package org.starsautohost.racebuilder;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -134,6 +133,7 @@ public class Page4 extends Page implements ChangeListener{
 			else if (e.getSource() == immune){
 				raceChanged();
 				updateExplanation();
+				repaint();
 			}
 		}
 		private void updateExplanation(){
@@ -151,9 +151,12 @@ public class Page4 extends Page implements ChangeListener{
 			explanation[1].setText(s2);
 			explanation[2].setText(s3);
 		}
-		private class Slider extends JPanel{
+		private class Slider extends JPanel implements MouseListener, MouseMotionListener{
 			public Slider(){
 				setBackground(Color.black);
+				addMouseListener(this);
+				addMouseMotionListener(this);
+				setCursor(new Cursor(Cursor.HAND_CURSOR));
 			}
 			public void paint(Graphics g){
 				super.paint(g);
@@ -167,6 +170,47 @@ public class Page4 extends Page implements ChangeListener{
 					//System.out.println(x+" "+y+" "+w);
 					g.fillRect(x, 0, y-x, getHeight());
 				}
+			}
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			}
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				reposition(e.getX());
+			}
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				reposition(e.getX());
+			}
+			@Override
+			public void mouseMoved(MouseEvent e) {
+			}
+			public void reposition(int mx){
+				int currentMiddle = (end+start)/2;
+				int newMiddle = mx*(max-min)/getWidth();
+				start += newMiddle-currentMiddle;
+				end += newMiddle-currentMiddle;
+				if (start < min){
+					int d = min-start;
+					start += d;
+					end += d;
+				}
+				if (end > max){
+					int d = max-end;
+					start += d;
+					end += d;
+				}
+				repaint();
+				raceChanged();
 			}
 		}
 		public void setValues(int minimumValue, int maximumValue) {
