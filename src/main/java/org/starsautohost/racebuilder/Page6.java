@@ -6,8 +6,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.*;
 
-import org.starsautohost.racebuilder.nova.Race;
-import org.starsautohost.racebuilder.nova.TechLevel.ResearchField;
+import org.starsautohost.racebuilder.craigstars.*;
 
 public class Page6 extends Page implements ActionListener{
 
@@ -66,16 +65,15 @@ public class Page6 extends Page implements ActionListener{
 	@Override
 	public void setRace(Race r) {
 		settingRace = true;
-		int i = 0;
-		for (ResearchField rf : ResearchField.values()){
-			int val = r.getResearchCost(rf);
-			JRadioButton[] b = techs[i];
-			if (val == 175 || val == 150) b[0].setSelected(true);
-			else if (val == 100) b[1].setSelected(true);
-			else b[2].setSelected(true);
-			i++;
+		for (int t = 0; t < techs.length; t++){
+			JRadioButton[] tech = techs[t];
+			ResearchCostLevel rcl = r.getResearchCost().getAtIndex(t);
+			if (rcl == ResearchCostLevel.Extra) tech[0].setSelected(true);
+			else if (rcl == ResearchCostLevel.Standard) tech[1].setSelected(true);
+			else tech[2].setSelected(true);
 		}
-		startAt3.setSelected(r.hasTrait("ExtraTech"));
+		
+		startAt3.setSelected(r.isTechsStartHigh());
 		settingRace = false;
 	}
 
@@ -83,16 +81,14 @@ public class Page6 extends Page implements ActionListener{
 	public void actionPerformed(ActionEvent e) {
 		if (settingRace) return;
 		Race r = rb.getRace();
-		int i = 0;
-		for (ResearchField rf : ResearchField.values()){
-			JRadioButton[] b = techs[i];
-			int val = 100;
-			if (b[0].isSelected()) val = 175;
-			else if (b[2].isSelected()) val = 50;
-			r.researchCosts[i] = val;
-			i++;
+		for (int t = 0; t < techs.length; t++){
+			JRadioButton[] tech = techs[t];
+			if (tech[0].isSelected()) r.getResearchCost().setAtIndex(t,ResearchCostLevel.Extra);
+			else if (tech[1].isSelected()) r.getResearchCost().setAtIndex(t,ResearchCostLevel.Standard);
+			else r.getResearchCost().setAtIndex(t,ResearchCostLevel.Less);
+			
 		}
-		if (startAt3.isSelected()) r.traits.add("ExtraTech");
+		r.setTechsStartHigh(startAt3.isSelected());
 		rb.raceChanged();
 	}
 }

@@ -2,13 +2,13 @@ package org.starsautohost.racebuilder;
 
 import java.awt.*;
 import java.awt.event.*;
-
 import javax.swing.*;
-
-import org.starsautohost.racebuilder.nova.Race;
+import org.starsautohost.racebuilder.craigstars.Race;
+import org.starsautohost.racebuilder.craigstars.RacePointsCalculator;
 
 public class RaceBuilder extends JDialog implements ActionListener{
 
+	private static final long serialVersionUID = 1L;
 	private JButton back = new JButton("< Back");
 	private JButton next = new JButton("Next >");
 	private JButton finished = new JButton("Finish");
@@ -29,7 +29,13 @@ public class RaceBuilder extends JDialog implements ActionListener{
 		UIManager.put("Label.font", f);
 		UIManager.put("TitledBorder.font", f);
 		//UIManager.put("Spinner.font", f);
-		Race r = new Race();
+		Race r = Race.getHumanoid();
+		//Some adjustment tests outside of gui:
+		//System.out.println(r.getHabLow().getGrav()+" "+r.getHabCenter(0)+" "+r.getHabHigh().getGrav()+" "+r.getAvailablePoints());
+		//r.getHabLow().setGrav(14);
+		//r.getHabHigh().setGrav(84);
+		//System.out.println(r.getHabLow().getGrav()+" "+r.getHabCenter(0)+" "+r.getHabHigh().getGrav()+" "+r.getAvailablePoints());
+		
 		JFrame fr = new JFrame();
 		fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		fr.setSize(100,100);
@@ -115,7 +121,8 @@ public class RaceBuilder extends JDialog implements ActionListener{
 
 	public void raceChanged() {
 		try{
-			pointsLeftLabel.setText(""+r.getAdvantagePoints());
+			int points = RacePointsCalculator.getAdvantagePoints(r);
+			pointsLeftLabel.setText(""+points);
 		}catch(Exception ex){
 			ex.printStackTrace();
 			showError(ex);

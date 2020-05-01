@@ -143,6 +143,19 @@ public abstract class Block {
 		return s;
 	}
 	
+	public String getDecryptedDataString(){
+		if (encrypted){
+			String s = "-- Decrypted Block Data --\n";
+			s += Util.bytesToString(decryptedData, 0, size) + "\n";
+			return s;
+		}
+		else{
+			String s = "-- Original Block Data --\n";
+			s += Util.bytesToString(data, 0, size) + "\n";
+			return s;
+		}
+	}
+	
 	public Block cloneBlock() throws Exception{
 		Block b = this.getClass().newInstance();
 		b.typeId = typeId;

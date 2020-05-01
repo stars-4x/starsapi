@@ -2,10 +2,8 @@ package org.starsautohost.racebuilder;
 
 import java.awt.Insets;
 import java.awt.event.*;
-
 import javax.swing.*;
-
-import org.starsautohost.racebuilder.nova.Race;
+import org.starsautohost.racebuilder.craigstars.Race;
 
 public class Page1 extends Page implements ActionListener, KeyListener{
 
@@ -58,9 +56,9 @@ public class Page1 extends Page implements ActionListener, KeyListener{
 
 	@Override
 	public void setRace(Race r) {
-		raceName.setText(r.name);
-		pluralRaceName.setText(r.pluralName);
-		password.setText(r.password);
+		raceName.setText(r.getName());
+		pluralRaceName.setText(r.getPluralName());
+		password.setText(r.getPassword());
 	}
 
 	@Override
@@ -71,8 +69,8 @@ public class Page1 extends Page implements ActionListener, KeyListener{
 	}
 	@Override
 	public void keyReleased(KeyEvent e) {
-		rb.getRace().name = this.raceName.getText();
-		rb.getRace().pluralName = this.pluralRaceName.getText();
-		rb.getRace().password = this.password.getText().toString();
+		rb.getRace().setName(this.raceName.getText());
+		rb.getRace().setPluralName(this.pluralRaceName.getText());
+		rb.getRace().setPassword(new String(this.password.getPassword()));
 	}
 }

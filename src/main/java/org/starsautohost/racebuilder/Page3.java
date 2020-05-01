@@ -7,7 +7,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 
-import org.starsautohost.racebuilder.nova.*;
+import org.starsautohost.racebuilder.craigstars.LRT;
+import org.starsautohost.racebuilder.craigstars.Race;
 
 public class Page3 extends Page implements ActionListener{
 
@@ -46,8 +47,8 @@ public class Page3 extends Page implements ActionListener{
 	public void setRace(Race r) {
 		settingRace = true;
 		for (int t = 0; t < boxes.length; t++) boxes[t].setSelected(false);
-		for (TraitEntry t : r.traits.getValues()){
-			int index = AllTraits.getSecondaryIndex(t.code);
+		for (LRT trait : r.getLRTs()){
+			int index = trait.getIndex();
 			boxes[index].setSelected(true);
 		}
 		settingRace  = false;
@@ -56,12 +57,11 @@ public class Page3 extends Page implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (settingRace) return;
+		rb.getRace().getLRTs().clear();
 		for (int t = 0; t < boxes.length; t++){
-			String key = AllTraits.traitKeys[t+10];
 			if (boxes[t].isSelected()){
-				rb.getRace().traits.add(key);
+				rb.getRace().getLRTs().add(LRT.fromIndex(t));
 			}
-			else rb.getRace().traits.remove(key);
 		}
 		//System.out.println(rb.getRace().traits.getValues().toString());
 		rb.raceChanged();

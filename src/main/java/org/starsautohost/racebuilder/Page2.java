@@ -2,10 +2,8 @@ package org.starsautohost.racebuilder;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
 import javax.swing.*;
-
-import org.starsautohost.racebuilder.nova.*;
+import org.starsautohost.racebuilder.craigstars.*;
 
 public class Page2 extends Page implements ActionListener{
 
@@ -43,7 +41,8 @@ public class Page2 extends Page implements ActionListener{
 	@Override
 	public void setRace(Race r) {
 		settingRace = true;
-		int index = AllTraits.getIndex(r.traits.getPrimary().code);
+		int index = r.getPRT().getIndex();
+		//int index = AllTraits.getIndex(r.traits.getPrimary().code);
 		buttons[index].setSelected(true);
 		settingRace = false;
 	}
@@ -54,7 +53,7 @@ public class Page2 extends Page implements ActionListener{
 			if (settingRace) return;
 			for (int t = 0; t < buttons.length; t++) {
 				if (buttons[t].isSelected()){
-					rb.getRace().traits.setPrimary(AllTraits.traitKeys[t]);
+					rb.getRace().setPRT(PRT.fromIndex(t));
 				}
 			}
 			rb.raceChanged();

@@ -312,8 +312,10 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 			start();
 		}
 		public void run(){
+			int currentYear = 0;
 			try{
 				for (int t = 0; t < years.size(); t++){
+					currentYear = years.get(t).year;
 					GalaxyViewer.Settings s = new GalaxyViewer.Settings();
 					s.playerNr = -1;
 					s.gameName = settings.gameName;
@@ -329,6 +331,7 @@ public class GalaxyAnimator extends JFrame implements ActionListener{
 				}
 				setTitle("Stars GalaxyAnimator");
 			}catch(final Exception ex){
+				System.err.println("Error with parsing year "+currentYear);
 				ex.printStackTrace();
 				SwingUtilities.invokeLater(new Runnable(){
 					@Override

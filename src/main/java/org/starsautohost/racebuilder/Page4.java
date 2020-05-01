@@ -8,7 +8,10 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.starsautohost.racebuilder.nova.*;
+import org.starsautohost.racebuilder.craigstars.Hab;
+import org.starsautohost.racebuilder.craigstars.Race;
+import org.starsautohost.racebuilder.nova.Gravity;
+import org.starsautohost.racebuilder.nova.Temperature;
 
 public class Page4 extends Page implements ChangeListener{
 
@@ -177,28 +180,33 @@ public class Page4 extends Page implements ChangeListener{
 	@Override
 	public void setRace(Race r) {
 		settingRace = true;
-		gravityPanel.setValues(r.GravityTolerance.getMinimumValue(),r.GravityTolerance.getMaximumValue());
-		gravityPanel.immune.setSelected(r.IsImmune(0));
-		temperaturePanel.setValues(r.TemperatureTolerance.getMinimumValue(),r.TemperatureTolerance.getMaximumValue());
-		temperaturePanel.immune.setSelected(r.IsImmune(1));
-		radiationPanel.setValues(r.RadiationTolerance.getMinimumValue(), r.RadiationTolerance.getMaximumValue());
-		radiationPanel.immune.setSelected(r.IsImmune(2));
-		growthRate.setValue((int)r.GrowthRate);
+		System.out.println(r.getGrowthRate());
+		Hab low = r.getHabLow();
+		Hab high = r.getHabHigh();
+		gravityPanel.setValues(low.getGrav(),high.getGrav());
+		gravityPanel.immune.setSelected(r.isImmuneGrav());
+		temperaturePanel.setValues(low.getTemp(),high.getTemp());
+		temperaturePanel.immune.setSelected(r.isImmuneTemp());
+		radiationPanel.setValues(low.getRad(), high.getRad());
+		radiationPanel.immune.setSelected(r.isImmuneRad());
+		growthRate.setValue((int)(r.getGrowthRate()*100));
 		settingRace = false;
 	}
 	
 	private void raceChanged(){
 		if (settingRace) return;
-		rb.getRace().GravityTolerance.setMinimumValue(gravityPanel.start);
-		rb.getRace().GravityTolerance.setMaximumValue(gravityPanel.end);
-		rb.getRace().GravityTolerance.setImmune(gravityPanel.immune.isSelected());
-		rb.getRace().TemperatureTolerance.setMinimumValue(temperaturePanel.start);
-		rb.getRace().TemperatureTolerance.setMaximumValue(temperaturePanel.end);
-		rb.getRace().TemperatureTolerance.setImmune(temperaturePanel.immune.isSelected());
-		rb.getRace().RadiationTolerance.setMinimumValue(radiationPanel.start);
-		rb.getRace().RadiationTolerance.setMaximumValue(radiationPanel.end);
-		rb.getRace().RadiationTolerance.setImmune(radiationPanel.immune.isSelected());
-		rb.getRace().GrowthRate = (int)growthRate.getValue();
+		Hab low = rb.getRace().getHabLow();
+		Hab high = rb.getRace().getHabHigh();
+		low.setGrav(gravityPanel.start);
+		high.setGrav(gravityPanel.end);
+		rb.getRace().setImmuneGrav(gravityPanel.immune.isSelected());
+		low.setTemp(temperaturePanel.start);
+		high.setTemp(temperaturePanel.end);
+		rb.getRace().setImmuneTemp(temperaturePanel.immune.isSelected());
+		low.setRad(radiationPanel.start);
+		high.setRad(radiationPanel.end);
+		rb.getRace().setImmuneRad(radiationPanel.immune.isSelected());
+		rb.getRace().setGrowthRate((float)((int)growthRate.getValue()/100.0));
 		rb.raceChanged();
 	}
 

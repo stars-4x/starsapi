@@ -2,7 +2,7 @@ package org.starsautohost.racebuilder;
 
 import javax.swing.JPanel;
 
-import org.starsautohost.racebuilder.nova.Race;
+import org.starsautohost.racebuilder.craigstars.Race;
 
 public abstract class Page extends JPanel{
 

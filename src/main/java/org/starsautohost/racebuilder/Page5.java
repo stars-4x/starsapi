@@ -3,12 +3,10 @@ package org.starsautohost.racebuilder;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
-import org.starsautohost.racebuilder.nova.Race;
+import org.starsautohost.racebuilder.craigstars.Race;
 
 public class Page5 extends Page implements ActionListener, ChangeListener{
 
@@ -70,14 +68,14 @@ public class Page5 extends Page implements ActionListener, ChangeListener{
 	@Override
 	public void setRace(Race r) {
 		settingRace = true;
-		resources.setValue(r.colonistsPerResource);
-		factories1.setValue(r.factoryProduction);
-		factories2.setValue(r.factoryBuildCost);
-		factories3.setValue(r.operableFactories);
-		mines1.setValue(r.mineProductionRate);
-		mines2.setValue(r.mineBuildCost);
-		mines3.setValue(r.operableMines);
-		germanium.setSelected(r.hasTrait("CF"));
+		resources.setValue(r.getColonistsPerResource());
+		factories1.setValue(r.getFactoryOutput());
+		factories2.setValue(r.getFactoryCost());
+		factories3.setValue(r.getNumFactories());
+		mines1.setValue(r.getMineOutput());
+		mines2.setValue(r.getMineCost());
+		mines3.setValue(r.getNumMines());
+		germanium.setSelected(r.isFactoriesCostLess());
 		settingRace = false;
 	}
 
@@ -85,17 +83,15 @@ public class Page5 extends Page implements ActionListener, ChangeListener{
 	public void stateChanged(ChangeEvent e) {
 		if (settingRace) return;
 		Race r = rb.getRace();
-		r.colonistsPerResource = (Integer)resources.getValue();
-		r.factoryProduction = (Integer)factories1.getValue();
-		r.factoryBuildCost = (Integer)factories2.getValue();
-		r.operableFactories = (Integer)factories3.getValue();
-		r.mineProductionRate = (Integer)mines1.getValue();
-		r.mineBuildCost = (Integer)mines2.getValue();
-		r.operableMines = (Integer)mines3.getValue();
-		if (germanium.isSelected()) r.traits.add("CF");
-		else r.traits.remove("CF");
+		r.setColonistsPerResource((Integer)resources.getValue());
+		r.setFactoryOutput((Integer)factories1.getValue());
+		r.setFactoryCost((Integer)factories2.getValue());
+		r.setNumFactories((Integer)factories3.getValue());
+		r.setMineOutput((Integer)mines1.getValue());
+		r.setMineCost((Integer)mines2.getValue());
+		r.setNumMines((Integer)mines3.getValue());
+		r.setFactoriesCostLess(germanium.isSelected());
 		rb.raceChanged();
-		
 	}
 
 	@Override

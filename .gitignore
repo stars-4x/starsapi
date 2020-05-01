@@ -1,8 +1,8 @@
 /bin/
-galaxyviewer.ini
-galaxyanimator.ini
+*.ini
 .metadata/*
 .recommenders/*
 *.bat
 *.bak
 *.jar
+*testbed*
