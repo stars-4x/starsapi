@@ -2,15 +2,16 @@ package org.starsautohost.racebuilder;
 
 import java.awt.*;
 import java.awt.event.*;
-
 import javax.swing.*;
-
 import org.starsautohost.racebuilder.craigstars.Race;
 import org.starsautohost.racebuilder.craigstars.RacePointsCalculator;
+import org.starsautohost.racebuilder.rulesets.*;
 
 public class RaceBuilder extends JFrame implements ActionListener{
 
 	private static final long serialVersionUID = 1L;
+	private JComboBox<RuleSet> ruleSet = new JComboBox<RuleSet>();
+	private JButton info = new JButton("Info");
 	private JButton back = new JButton("< Back");
 	private JButton next = new JButton("Next >");
 	private JButton finished = new JButton("Finish");
@@ -48,6 +49,12 @@ public class RaceBuilder extends JFrame implements ActionListener{
 	}
 	private void construct(Race r){
 		this.r = r;
+		DefaultComboBoxModel<RuleSet> m = new DefaultComboBoxModel<RuleSet>();
+		m.addElement(new DefaultRuleSet());
+		m.addElement(new TestRuleSet());
+		ruleSet.setModel(m);
+		ruleSet.addActionListener(this);
+		info.addActionListener(this);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		pages[0] = new Page1(this);
 		pages[1] = new Page2(this);
@@ -71,8 +78,17 @@ public class RaceBuilder extends JFrame implements ActionListener{
 		pointsLeftLabel.setFont(pointsLeftLabel.getFont().deriveFont((float)36));
 		northEast.setBorder(BorderFactory.createLineBorder(Color.black, 2));
 		north.add(northEast,BorderLayout.EAST);
-		JPanel south = new JPanel(); south.setLayout(new FlowLayout());
-		south.add(back); south.add(next); south.add(finished);
+		JPanel south = new JPanel();
+		JPanel south1 = new JPanel();
+		south1.setLayout(new FlowLayout());
+		south1.add(new JLabel("Ruleset"));
+		south1.add(ruleSet);
+		south1.add(info);
+		JPanel south2 = new JPanel(); 
+		south2.setLayout(new FlowLayout());
+		south2.add(back); south2.add(next); south2.add(finished);
+		south.setLayout(new GridLayout(2,1));
+		south.add(south1); south.add(south2);
 		cp.add(north,BorderLayout.NORTH);
 		cp.add(center,BorderLayout.CENTER);
 		cp.add(south,BorderLayout.SOUTH);
@@ -95,6 +111,12 @@ public class RaceBuilder extends JFrame implements ActionListener{
 		}
 		else if (e.getSource() == next){
 			setPage(page+1);
+		}
+		else if (e.getSource() == ruleSet){
+			raceChanged();
+		}
+		else if (e.getSource() == info){
+			JOptionPane.showMessageDialog(this, ((RuleSet)ruleSet.getSelectedItem()).getDescription());
 		}
 	}
 	
@@ -119,6 +141,8 @@ public class RaceBuilder extends JFrame implements ActionListener{
 	public void raceChanged() {
 		try{
 			int points = RacePointsCalculator.getAdvantagePoints(r);
+			RuleSet rs = (RuleSet)ruleSet.getSelectedItem();
+			points = rs.addToPoints(r, points);
 			pointsLeftLabel.setText(""+points);
 		}catch(Exception ex){
 			ex.printStackTrace();

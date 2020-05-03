@@ -2,11 +2,9 @@ package org.starsautohost.racebuilder;
 
 import java.awt.*;
 import java.awt.event.*;
-
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
 import org.starsautohost.racebuilder.craigstars.Hab;
 import org.starsautohost.racebuilder.craigstars.Race;
 import org.starsautohost.racebuilder.nova.Gravity;
@@ -210,6 +208,7 @@ public class Page4 extends Page implements ChangeListener{
 					end += d;
 				}
 				repaint();
+				updateExplanation();
 				raceChanged();
 			}
 		}
