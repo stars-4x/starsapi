@@ -294,22 +294,35 @@ public class Decryptor
 	 * @throws Exception
 	 */
 	public List<Block> readFile(String filename) throws Exception {
-		
-		// Read in the full file to a byte array...  we have the RAM
+
+		// Read in the full file to a byte array...
 		File file = new File(filename);
 		InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
 		ByteArrayOutputStream bout = new ByteArrayOutputStream((int) file.length());
 		try {
-		    byte[] buf = new byte[8192];
-		    int r;
-		    while ((r = fileInputStream.read(buf)) > 0) {
-		        bout.write(buf, 0, r);
-		    }
+			byte[] buf = new byte[8192];
+			int r;
+			while ((r = fileInputStream.read(buf)) > 0) {
+				bout.write(buf, 0, r);
+			}
 		} finally {
-		    fileInputStream.close();
+			fileInputStream.close();
 		}
 		byte[] fileBytes = bout.toByteArray();
 		
+		return readFileBytes(fileBytes);
+	}
+	
+	
+	/**
+	 * Parse and decrypt a Stars! file that has been converted to a byte 
+	 * array.
+	 * 
+	 * @param fileBytes
+	 * @return
+	 * @throws Exception
+	 */
+	public List<Block> readFileBytes(byte[] fileBytes) throws Exception {
 		// Round 1: Block-parsing
 		List<Block> blockList = new ArrayList<Block>();
 		
