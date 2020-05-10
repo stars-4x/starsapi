@@ -61,4 +61,25 @@ public abstract class ProductionQueue extends Block {
 			queueItems.add(item);
 		}
 	}
+	
+	/**
+	 * Encode the queue into the byte stream required in the block
+	 * 
+	 * @return
+	 */
+	protected byte[] encodeQueue() {
+		byte[] res = new byte[4 * queueItems.size()];
+		
+		for(int i = 0; i < queueItems.size(); i++) {
+			QueueItem item = queueItems.get(i);
+
+			int chunk1 = (item.itemId << 10) | (item.count & 0x3FF);
+			int chunk2 = (item.completePercent << 4) | (item.itemType & 0xF);
+			
+			Util.write16(res, 4*i,     chunk1);
+			Util.write16(res, 4*i + 2, chunk2);
+		}
+			
+		return res;
+	}
 }
