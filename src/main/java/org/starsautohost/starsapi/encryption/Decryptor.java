@@ -184,6 +184,11 @@ public class Decryptor
             return;
         }
         
+        //Added to ensure correct writing of R-files. Hopefully it doesn't break something else.
+        if (block.typeId == BlockType.FILE_FOOTER){
+        	return;
+        }       
+        
         block.encrypted = true;
 
         byte[] decryptedData = block.getDecryptedData();
@@ -357,7 +362,12 @@ public class Decryptor
         int header = (block.typeId << 10) | block.size;
         out.write(header & 0xFF);
         out.write((header >> 8) & 0xFF);
-        out.write(block.getData(), 0, block.size);
+        if (block.typeId == BlockType.FILE_FOOTER && block.isHasData() == false){
+        	out.write(new byte[2]);
+        }
+        else{
+        	out.write(block.getData(), 0, block.size);
+        }
         if(block.typeId == BlockType.PLANETS) {
             PlanetsBlock planetsBlock = (PlanetsBlock) block;
             out.write(planetsBlock.planetsData);

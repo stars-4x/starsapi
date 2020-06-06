@@ -214,4 +214,12 @@ public class PlayerBlock extends Block {
 	    }
 	    return block;
 	}
+
+	public byte[] getFullDataBytes() {
+		return fullDataBytes;
+	}
+
+	public void setFullDataFlag(boolean b) {
+		fullDataFlag = b;
+	}
 }

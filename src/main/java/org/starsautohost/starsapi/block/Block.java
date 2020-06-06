@@ -53,7 +53,7 @@ public abstract class Block {
 	 */
 	public byte[] getData() throws Exception {
 		if(!hasData)
-			throw new Exception("Raw byte data has not been set!");
+			throw new Exception("Raw byte data has not been set! ("+getClass().getName()+")");
 			
 		return data;
 	}
@@ -167,5 +167,9 @@ public abstract class Block {
 		b.decryptedData = decryptedData;
 		decode();
 		return b;
+	}
+	
+	public boolean isHasData(){
+		return hasData;
 	}
 }
