@@ -19,8 +19,10 @@ public class ProductionQueueBlock extends ProductionQueue {
 
 	@Override
 	public void encode() {
-		// TODO Auto-generated method stub
-		
+		byte[] queueBytes = encodeQueue();
+        
+        // Save as decrypted data
+        setDecryptedData(queueBytes, queueBytes.length);
 	}
 	
 	@Override

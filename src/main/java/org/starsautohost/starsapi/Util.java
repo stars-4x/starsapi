@@ -405,6 +405,8 @@ public class Util {
 	/**
 	 * Convert a string of hexadecimal characters to a byte equivalents. Every
 	 * two hex chars are one byte.
+	 * 
+	 * Expects uppercase letters
 	 *  
 	 * @param hexChars
 	 * @return
