@@ -51,12 +51,15 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	//UI
 	protected RPanel universe = new RPanel();
 	private JButton hw = new JButton("HW");
+	private JCheckBox hws = new JCheckBox("HWs"); 
+	private JButton voronoi = new JButton("V");
 	private JTextField search = new JTextField();
 	private JCheckBox names = new JCheckBox("Names",false);
 	private JSlider zoomSlider = new JSlider(25, 600, 100);
 	private JButton help = new JButton("Help");
 	private JCheckBox colorize = new JCheckBox("Colorize",false);
 	private JCheckBox showFleets = new JCheckBox("Fleets",false);
+	private JCheckBox showMass = new JCheckBox("Mass",false);
 	private JButton gotoBigFleets = new JButton("Go to big enemy fleets");
 	private JButton showFilters = new JButton("Show filters");
 	private JTextField massFilter = new JTextField();
@@ -73,7 +76,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private HashMap<Integer,Color> colors = new HashMap<Integer, Color>();
 	private HashMap<Integer,Color> weakColors = new HashMap<Integer,Color>();
 	private JLabel info = new JLabel();
-	private boolean animatorFrame, paintVoronoi;
+	private boolean animatorFrame, paintVoronoi, paintVoronoiOnce;
 	private Vector<JCheckBox> playerFilters = new Vector<JCheckBox>();
 	private JPanel filterPanel = new JPanel();
 	private static HashMap<String,TexturePaint> bufferedPatterns = new HashMap<String,TexturePaint>();
@@ -193,7 +196,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		cp.setLayout(new BorderLayout());
 		cp.add(universe,BorderLayout.CENTER);
 		
-		JPanel s = createPanel(0,hw,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showFilters,showMt,showMinefields,showWormholes,gotoBigFleets);
+		JPanel s = createPanel(0,hw,hws,voronoi,new JLabel("Search: "),search,names,zoomSlider,colorize,showFleets,showMass,showFilters,showMt,showMinefields,showWormholes,gotoBigFleets);
 		JPanel south = new JPanel(); south.setLayout(new BorderLayout());
 		south.add(info,BorderLayout.NORTH);
 		south.add(filterPanel,BorderLayout.CENTER);
@@ -204,11 +207,17 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		massFilter.setPreferredSize(new Dimension(75,-1));
 		cp.add(south,BorderLayout.SOUTH);
 		hw.addActionListener(this);
+		hws.addActionListener(this);
+		hws.setToolTipText("Will display HWs highlighted");
+		voronoi.addActionListener(this);
+		voronoi.setToolTipText("<html>Toggle a one-time Voronoi diagram.<br>Computational expensive.</html>");
 		names.addActionListener(this);
 		zoomSlider.addChangeListener(this);
 		colorize.addActionListener(this);
 		colorize.setToolTipText("Right-click to toggle voronoi");
 		showFleets.addActionListener(this);
+		showMass.addActionListener(this);
+		showMass.setToolTipText("Will show fleets highlighted in proportion to the largest massed fleet found.");
 		gotoBigFleets.addActionListener(this);
 		showFilters.addActionListener(this);
 		dreadNoughts.addActionListener(this);
@@ -226,11 +235,14 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		search.addKeyListener(this);
 		massFilter.addKeyListener(this);
 		hw.addKeyListener(this);
+		hws.addKeyListener(this);
+		voronoi.addKeyListener(this);
 		names.addKeyListener(this);
 		zoomSlider.addKeyListener(this);
 		colorize.addKeyListener(this);
 		colorize.addMouseListener(new RightClickListener());
 		showFleets.addKeyListener(this);
+		showMass.addKeyListener(this);
 		gotoBigFleets.addKeyListener(this);
 		showFilters.addKeyListener(this);
 		nubians.addKeyListener(this);
@@ -455,7 +467,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
     */
 	
 	private void calculateColors(){
-		if (animatorFrame || forceVoronoi){
+		if (animatorFrame || forceVoronoi || paintVoronoiOnce){
 			List<Color> distinctColors = pickColors(16);
 			for (int t = 0; t < distinctColors.size(); t++){
 				Color col = distinctColors.get(t);
@@ -560,6 +572,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		
 		@Override
 		public void paint(Graphics gr){
+			System.out.println("Painting");
 			Graphics2D g = (Graphics2D)gr;
 			g.setStroke(new BasicStroke(0.1f));
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -622,7 +635,8 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				}
 	        }
 	        
-	        if (paintVoronoi || (forceVoronoi && colorize.isSelected())){ //Show Voronoi colors! :-D
+	        if (paintVoronoi || paintVoronoiOnce || (forceVoronoi && colorize.isSelected())){ //Show Voronoi colors! :-D
+	        	System.out.println("Painting voronoi");
 	        	g.setStroke(new BasicStroke(1f));
 				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 				
@@ -732,8 +746,10 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				System.out.println("Count0:"+count0);
 				System.out.println("Count1:"+count1);
 				System.out.println("Countx:"+countx);
+				paintVoronoiOnce = false;
 	        }
-	        
+
+	        //Paint planets
 			for (Integer id : map.planetNames.keySet()){
 				String name = map.planetNames.get(id);
 				Point p = map.planetCoordinates.get(id);
@@ -749,6 +765,13 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				int y = convertY(p.y);
 				x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 				y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+				if (hws.isSelected() && planet != null && planet.isHomeworld){
+					Color col = g.getColor();
+					g.setColor(new Color(col.getRed(),col.getGreen(),col.getBlue(),128));
+					int r = 25;
+					g.fillOval(x-r/2, y-r/2, r, r);
+					g.setColor(col);
+				}
 		        g.fillOval(x-rad/2, y-rad/2, rad, rad);
 				if (names.isSelected()){
 					g.setFont(g.getFont().deriveFont((float)10));
@@ -798,12 +821,23 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			
 			//Then, paint fleets!
 			if (showFleets.isSelected()){
-				g.setFont(g.getFont().deriveFont((float)10));
-				
 				int minimumMass = 0;
 				if (isInteger(massFilter.getText().trim())){
 					minimumMass = Integer.parseInt(massFilter.getText().trim());
 				}
+				long maxMass = 0;
+				if (showMass.isSelected()){
+					for (Point p : enemyFleetInfo.keySet()){
+						RFleetInfo i = enemyFleetInfo.get(p);
+						if (i.totalMass > maxMass) maxMass = i.totalMass;
+					}
+					for (Point p : friendlyFleetInfo.keySet()){
+						RFleetInfo i = friendlyFleetInfo.get(p);
+						if (i.totalMass > maxMass) maxMass = i.totalMass;
+					}
+				}
+				
+				g.setFont(g.getFont().deriveFont((float)10));				
 				//First pass, paint fleet graphics and small fleet numbers
 				HashMap<Point,Color> painted = new HashMap<Point,Color>();
 				for (PlayerInfo pi : sortedPlayers){
@@ -831,6 +865,23 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 						int y = convertY(p.y);
 						x = (int)(xOffset + x*zoom/100.0 - mariginX*zoom/100.0);
 						y = (int)(yOffset + y*zoom/100.0 - mariginY*zoom/100.0);
+						if (showMass.isSelected()){
+							RFleetInfo rfi = null;
+							if (isEnemy(pi.playerBlock.playerNumber)){
+								rfi = enemyFleetInfo.get(p);
+							}
+							else{
+								rfi = friendlyFleetInfo.get(p);
+							}
+							if (rfi != null && maxMass > 0){
+								Color old = g.getColor();
+								g.setColor(new Color(col.getRed(),col.getGreen(),col.getBlue(),100));
+								int r = (int)(29 * rfi.totalMass / maxMass);
+								g.fillOval(x-r/2, y-r/2, r, r);
+								g.setColor(old);
+							}
+						}
+						
 						if (map.planetNrs.get(p) != null){ //Fleet at orbit
 							//PartialPlanetBlock planet = getPlanet(map.planetNrs.get(p), -1);
 							if (painted.get(p) == null || painted.get(p).equals(g.getColor()) == false){
@@ -1125,6 +1176,14 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 				System.out.println("Did not find hw for player "+settings.playerNr);
 			}
 		}
+		else if (e.getSource() == hws){
+			repaint();
+		}
+		else if (e.getSource() == voronoi){
+			paintVoronoiOnce = true;
+			calculateColors();
+			repaint();
+		}
 		else if (e.getSource() == names){
 			repaint();
 		}
@@ -1132,6 +1191,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			repaint();
 		}
 		else if (e.getSource() == showFleets){
+			repaint();
+		}
+		else if (e.getSource() == showMass){
 			repaint();
 		}
 		else if (e.getSource() == showMt){
