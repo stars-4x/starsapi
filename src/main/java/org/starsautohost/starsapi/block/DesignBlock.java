@@ -24,6 +24,39 @@ public class DesignBlock extends Block {
     public List<Slot> slots = new ArrayList<Slot>();
     public boolean colonizerModuleBug = false;
     public boolean spaceDocBug = false;
+
+    public static final int metaMorph = 31;
+    public static final int miniMorph = 30;
+    public static final int nubian = 29;
+    public static final int superMineLayer = 28;
+    public static final int miniMineLayer = 27;
+    public static final int superFuelXport = 26;
+    public static final int fuelTransport = 25;
+    public static final int ultraMiner = 24;
+    public static final int maxiMiner = 23;
+    public static final int miner = 22;
+    public static final int miniMiner = 21;
+    public static final int midgetMiner = 20;
+    public static final int b52Bomber = 19;
+    public static final int stealthBomber = 18;
+    public static final int b17Bomber = 17;
+    public static final int miniBomber = 16;
+    public static final int colonyShip = 15;
+	public static final int miniColony = 14;
+    public static final int galleon = 13;
+    public static final int rogue = 12;
+	public static final int privateer = 11;
+    public static final int dreadnought = 10;
+    public static final int battleship = 9;
+    public static final int battlecruiser = 8;
+    public static final int cruiser = 7;
+    public static final int destroyer = 6;
+    public static final int frigate = 5;
+    public static final int scout = 4;
+    public static final int superFreighter = 3;
+    public static final int largeFreighter = 2;
+    public static final int mediumFreighter = 1;
+    public static final int smallFreighter = 0;
     
     public byte[] nameBytes;
     

@@ -66,6 +66,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 	private JCheckBox nubians = new JCheckBox("Nubians",true);
 	private JCheckBox dreadNoughts = new JCheckBox("Dreadnoughts",true);
 	private JCheckBox battleships = new JCheckBox("Battleships",true);
+	private JCheckBox cruisers = new JCheckBox("Cruisers",true);
+	private JCheckBox destroyers = new JCheckBox("Destroyers",true);
+	private JCheckBox bombers = new JCheckBox("Bombers",true);
 	private JCheckBox others = new JCheckBox("Others",true);
 	private JCheckBox showMt = new JCheckBox("MT",true);
 	private JCheckBox showMinefields = new JCheckBox("MF",false);
@@ -202,7 +205,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		south.add(filterPanel,BorderLayout.CENTER);
 		south.add(s,BorderLayout.SOUTH);
 		filterPanel.setVisible(false);
-		filterPanel.add(createPanel(0, new JLabel("Mass-filter: "),massFilter,new JLabel("  "),nubians,dreadNoughts,battleships,others),BorderLayout.CENTER);
+		filterPanel.add(createPanel(0, new JLabel("Mass-filter: "),massFilter,new JLabel("  "),nubians,dreadNoughts,battleships,cruisers,destroyers,bombers,others),BorderLayout.CENTER);
 		search.setPreferredSize(new Dimension(100,-1));
 		massFilter.setPreferredSize(new Dimension(75,-1));
 		cp.add(south,BorderLayout.SOUTH);
@@ -223,6 +226,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		dreadNoughts.addActionListener(this);
 		nubians.addActionListener(this);
 		battleships.addActionListener(this);
+		cruisers.addActionListener(this);
+		destroyers.addActionListener(this);
+		bombers.addActionListener(this);
 		others.addActionListener(this);
 		showMt.addActionListener(this);
 		showMt.addMouseListener(new RightClickListener());
@@ -248,6 +254,9 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 		nubians.addKeyListener(this);
 		dreadNoughts.addKeyListener(this);
 		battleships.addKeyListener(this);
+		cruisers.addKeyListener(this);
+		destroyers.addKeyListener(this);
+		bombers.addKeyListener(this);
 		others.addKeyListener(this);
 		showMt.addKeyListener(this);
 		showMinefields.addKeyListener(this);
@@ -1212,7 +1221,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			filterPanel.setVisible(!filterPanel.isVisible());
 			showFilters.setText(filterPanel.isVisible()?"Hide filters":"Show filters");
 		}
-		else if (e.getSource() == nubians || e.getSource() == dreadNoughts || e.getSource() == battleships || e.getSource() == others){
+		else if (e.getSource() == nubians || e.getSource() == dreadNoughts || e.getSource() == battleships || e.getSource() == cruisers || e.getSource() == destroyers || e.getSource() == bombers || e.getSource() == others){
 			p.calculateFleetInfo();
 			repaint();
 		}
@@ -1448,14 +1457,23 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 			int thisCount = 0;
 			for (int t = 0; t < f.shipCount.length; t++){
 				if (f.shipCount[t] == 0) continue;
-				if (pi.shipDesignBlocks[t].hullId == 29){ //28 seems to be sml
+				if (pi.shipDesignBlocks[t].hullId == DesignBlock.nubian){ //28 seems to be sml
 					if (nubians.isSelected() == false) continue;
 				}
-				else if (pi.shipDesignBlocks[t].hullId == 10){
+				else if (pi.shipDesignBlocks[t].hullId == DesignBlock.dreadnought){
 					if (dreadNoughts.isSelected() == false) continue;
 				}
-				else if (pi.shipDesignBlocks[t].hullId == 9){
+				else if (pi.shipDesignBlocks[t].hullId == DesignBlock.battleship){
 					if (battleships.isSelected() == false) continue;
+				}
+				else if (pi.shipDesignBlocks[t].hullId == DesignBlock.cruiser){
+					if (cruisers.isSelected() == false) continue;
+				}
+				else if (pi.shipDesignBlocks[t].hullId == DesignBlock.destroyer){
+					if (destroyers.isSelected() == false) continue;
+				}
+				else if (pi.shipDesignBlocks[t].hullId == DesignBlock.miniBomber || pi.shipDesignBlocks[t].hullId == DesignBlock.b17Bomber || pi.shipDesignBlocks[t].hullId == DesignBlock.b52Bomber || pi.shipDesignBlocks[t].hullId == DesignBlock.stealthBomber){
+					if (bombers.isSelected() == false) continue;
 				}
 				else{
 					if (others.isSelected() == false) continue;
