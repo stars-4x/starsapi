@@ -60,8 +60,8 @@ public class CorruptedRaceFileFixer {
 		String newFullpath = basename + "_fixed." + extension;
 		decryptor.writeBlocks(newFullpath, newBlocks, false);
 		
-		System.out.println("== New file ==");
-		System.out.println("Name:\n   " + newFullpath);
+		System.out.println("== Fixed! ==");
+		System.out.println("New file at:\n   " + newFullpath);
 	}
 
 
