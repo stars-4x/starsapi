@@ -28,8 +28,19 @@ public class PlayerBlock extends Block {
     public boolean fullDataFlag;
     public byte[] fullDataBytes;
     public byte[] playerRelations = new byte[0]; // 0 neutral, 1 friend, 2 enemy
-    public byte[] nameBytes;
+
+    public String nameSingular;
+    public String namePlural;
+    
     public byte byte7 = 1;
+    
+    /**
+     * The in-game Block 6 struct *for race files* is exactly this size. 
+     * The checksum of this block requires the internals be aligned at the 
+     * proper spots (e.g race names)
+     */
+    public byte[] raceFileStructData = new byte[192];  
+    
     
 	public PlayerBlock() {
 		typeId = BlockType.PLAYER;
@@ -68,18 +79,50 @@ public class PlayerBlock extends Block {
             System.arraycopy(decryptedData, index + 1, playerRelations, 0, playerRelationsLength);
             index += 1 + playerRelationsLength;
 	    }
-	    int namesStart = index;
-	    int singularNameLength = decryptedData[index++] & 0xFF;
-	    index += singularNameLength;
-	    int pluralNameLength = decryptedData[index++] & 0xFF;
-	    index += pluralNameLength;
-	    if (pluralNameLength == 0) index++; //Fix for empty plural name.
-	    nameBytes = new byte[index - namesStart];
-	    System.arraycopy(decryptedData, namesStart, nameBytes, 0, nameBytes.length);
+
+	    int namesStart = index;  // Save for later
+	    
+	    // Decode the singular name
+	    byte[] nameBytesSingular = new byte[32];
+	    int singularNameLength = decryptedData[index] & 0xFF;
+	    System.arraycopy(decryptedData, index, nameBytesSingular, 0, singularNameLength+1);
+	    
+	    nameSingular = Util.decodeStarsString(nameBytesSingular);
+	    
+	    index += (singularNameLength + 1);
+	    
+	    // Decode plural name (if exist)
+	    byte[] nameBytesPlural = new byte[32];
+	    int pluralNameLength = decryptedData[index] & 0xFF;
+	    System.arraycopy(decryptedData, index, nameBytesPlural, 0, pluralNameLength+1);
+	    
+	    namePlural = Util.decodeStarsString(nameBytesPlural);
+	    
+	    index += pluralNameLength+1;
+	    // If no plural name skip another byte because of 16-bit alignment
+	    if(pluralNameLength == 0)
+	    	index++;
+
+	    /*
+	     * Now fill out the properly aligned race file struct data that is 
+	     * needed for checksums
+	     */
+	    // First copy in everything up until the singular name
+	    System.arraycopy(decryptedData, 0, raceFileStructData, 0, namesStart);
+	    
+	    // Now do the singular/plural names which are the final two 16-word (32 byte) 
+	    // chunks in the struct data (which is 192 bytes)
+	    byte[] decodedSingularNameBytes = nameSingular.getBytes();
+	    System.arraycopy(decodedSingularNameBytes, 0, raceFileStructData, 128, decodedSingularNameBytes.length);
+	    
+	    byte[] decodedPluralNameBytes = namePlural.getBytes();
+	    System.arraycopy(decodedPluralNameBytes, 0, raceFileStructData, 160, decodedPluralNameBytes.length);
+	    
+	    
 	    if (index != size) {
 	    	String error = "Unexpected player data size: " + this;
 	    	error += "\nIndex: "+index+", size: "+size;
-	    	error += "\nPlayer nr: "+playerNumber+", "+ Util.decodeStarsString(nameBytes);
+	    	error += "\nPlayer nr: "+playerNumber+", "+ nameSingular;
 	    	error += "\nBlock size: "+(decryptedData != null ? decryptedData.length : 0);
 	    	if (ignoreParseErrors){
 	    		System.out.println(error);
@@ -92,34 +135,39 @@ public class PlayerBlock extends Block {
 
 	@Override
 	public void encode() throws Exception {
+		// Encode singular/plural race names
+		byte[] nameSingularBytes = Util.encodeStarsString(nameSingular);
+		byte[] namePluralBytes = Util.encodeStarsString(namePlural);
+				
+		int nameBytesOffset = 8;
+		if (fullDataFlag)
+	    	nameBytesOffset = 8 + 0x68 + 1 + playerRelations.length;
+
+		// Initialize decrypted data array	
+		byte[] res = new byte[nameBytesOffset + nameSingularBytes.length + namePluralBytes.length];
+	    
+		// Encode
+	    res[0] = (byte)playerNumber;
+        res[1] = (byte)shipDesignCount;
+        res[2] = (byte)(planets & 0xFF);
+        res[3] = (byte)(planets >> 8);
+        res[4] = (byte)(fleets & 0xFF);
+        res[5] = (byte)((starbaseDesignCount << 4) + (fleets >> 8));
+        res[6] = (byte)((logo << 3) + 7);
+        res[7] = byte7;
+
+        // Copy in fullData and playerRelations if exist
 	    if (fullDataFlag) {
-            byte[] res = new byte[8 + 0x68 + 1 + playerRelations.length + nameBytes.length];
-            res[0] = (byte)playerNumber;
-            res[1] = (byte)shipDesignCount;
-            res[2] = (byte)(planets & 0xFF);
-            res[3] = (byte)(planets >> 8);
-            res[4] = (byte)(fleets & 0xFF);
-            res[5] = (byte)((starbaseDesignCount << 4) + (fleets >> 8));
-            res[6] = (byte)((logo << 3) + 7);
-            res[7] = byte7;
             System.arraycopy(fullDataBytes, 0, res, 8, fullDataBytes.length);
             res[0x70] = (byte)playerRelations.length;
             System.arraycopy(playerRelations, 0, res, 0x71, playerRelations.length);
-            System.arraycopy(nameBytes, 0, res, 0x71 + playerRelations.length, nameBytes.length);
-            setDecryptedData(res, res.length);
-	    } else {
-	        byte[] res = new byte[8 + nameBytes.length];
-	        res[0] = (byte)playerNumber;
-	        res[1] = (byte)shipDesignCount;
-	        res[2] = (byte)(planets & 0xFF);
-	        res[3] = (byte)(planets >> 8);
-	        res[4] = (byte)(fleets & 0xFF);
-	        res[5] = (byte)((starbaseDesignCount << 4) + (fleets >> 8));
-	        res[6] = (byte)((logo << 3) + 3);
-	        res[7] = byte7;
-	        System.arraycopy(nameBytes, 0, res, 8, nameBytes.length);
-	        setDecryptedData(res, res.length);
-	    }
+	    } 
+        
+        // Copy in names bytes
+        System.arraycopy(nameSingularBytes, 0, res, nameBytesOffset, nameSingularBytes.length);
+        System.arraycopy(namePluralBytes, 0, res, nameBytesOffset + nameSingularBytes.length, namePluralBytes.length);
+        
+        setDecryptedData(res, res.length);
 	}
 
 	// CAs see this
@@ -206,12 +254,10 @@ public class PlayerBlock extends Block {
 	    PlayerBlock block = new PlayerBlock();
 	    block.playerNumber = playerNumber;
 	    block.makeBeefyFullData(PRT.JOAT, false);
-	    if (playerNumber < 9) {
-	        block.nameBytes = new byte[] { 2, (byte)191, (byte)(203 + playerNumber), 2, (byte)191, (byte)(203 + playerNumber) };
-	    } else {
-	        // player number 9 is displayed as 10
-            block.nameBytes = new byte[] { 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10), 3, (byte)191, (byte)203, (byte)(203 + playerNumber - 10) };
-	    }
+	    	
+        block.nameSingular = "P" + playerNumber;
+        block.namePlural = "P" + playerNumber;
+        
 	    return block;
 	}
 

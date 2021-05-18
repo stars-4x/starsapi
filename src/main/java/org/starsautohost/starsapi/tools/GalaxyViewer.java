@@ -366,7 +366,7 @@ public class GalaxyViewer extends JFrame implements ActionListener, ChangeListen
 							if (player.getPlayerRelationsWith(pi.playerBlock.playerNumber) == 1) friends.addElement(pi.playerBlock.playerNumber);
 						}
 		        	}
-	        		String s = Util.decodeStarsString(pi.playerBlock.nameBytes);
+	        		String s = pi.playerBlock.nameSingular;
 	        		s = s.split(" ")[0];
 	        		playerNames.put(pi.playerBlock.playerNumber,s);
 	        		JCheckBox pf = new JCheckBox(s,true);
