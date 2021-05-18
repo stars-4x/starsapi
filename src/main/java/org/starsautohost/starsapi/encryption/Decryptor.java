@@ -184,8 +184,8 @@ public class Decryptor
             return;
         }
         
-        //Added to ensure correct writing of R-files. Hopefully it doesn't break something else.
-        if (block.typeId == BlockType.FILE_FOOTER){
+        // Footers are also unencrypted
+        if (block.typeId == BlockType.FILE_FOOTER) {
         	return;
         }       
         

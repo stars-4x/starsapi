@@ -4,7 +4,7 @@ import org.starsautohost.starsapi.Util;
 
 public class FileFooterBlock extends Block {
 
-	public int checksum;
+	public int checksum = 0;
 	
 	public FileFooterBlock() {
 		typeId = BlockType.FILE_FOOTER;
@@ -21,8 +21,16 @@ public class FileFooterBlock extends Block {
 
 	@Override
 	public void encode() throws Exception {
-		// TODO Auto-generated method stub
-		
+		// Have checksum
+		if(checksum != 0) {
+			size = 2;
+			byte[] theData = new byte[size];
+			Util.write16(theData, 0, checksum);
+			
+			// Not encrypted
+			setData(theData, theData.length);
+		}
+			
 	}
 
 	public static FileFooterBlock zeroFileFooterBlockForHstOrMFile() {
