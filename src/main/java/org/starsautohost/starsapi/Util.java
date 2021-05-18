@@ -475,4 +475,30 @@ public class Util {
 	public static byte[] subArray(byte[] input, int startIdx) {
 		return subArray(input, startIdx, input.length-1);
 	}
+	
+
+	
+	/**
+	 * Run the checksum on a race file. The input data should be an array of
+	 * 192 bytes (96 words) with internal members properly aligned (e.g. race
+	 * names)
+	 * 
+	 * @param structData
+	 * @return
+	 */
+	public static int checkSumRaceFile(byte[] structData)
+	{
+		if(structData.length != 192)
+			throw new IllegalArgumentException("Input must be 192 bytes long");
+		
+		int sum = 0;
+		for(int ii = 0; ii < structData.length; ii+=2)
+		{
+			// XOR every 16-bit word
+			int chunk = Util.read16(structData, ii) & 0xFFFF;
+			sum  = sum ^ chunk;
+		}
+
+		return sum;
+	}
 }
